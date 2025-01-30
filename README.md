@@ -4,7 +4,8 @@
 ### new features:
 1. micro wake words : alexa, okay_nabu, hey_jarvis, okay_croft (valid simutaneously!)
 2. sound control : + / - via volume encoder rotate , pause / play  toggle via encoder click
-3. media_player introduction (with an issue to be corrected on front end version...)
+3. media_player introduction (with an issue (.aac files) to be corrected ...)
+4. front end media player pause via stations encoder click (to interact with the voice assistant)
 
 ----------------------------------------------------------------------------------------------
 

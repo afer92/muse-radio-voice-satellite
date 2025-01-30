@@ -6,6 +6,12 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   min_version: 2024.9.1
+  includes: 
+  libraries: 
+#    - WiFi
+#    - WiFiClientSecure
+    - 'ESP32-audioI2S=https://github.com/esphome/ESP32-audioI2S'  
+
   platformio_options:
     board_build.flash_mode: dio
     board_build.arduino.memory_type: qio_opi
@@ -32,13 +38,33 @@ external_components:
   - source: github://RASPIAUDIO/esphomeRadio@main
     components: [es8388]
     refresh: 0s
+    
   - source:
       type: git
       url: https://github.com/gnumpi/esphome_audio
       ref: dev-next
     components: [ adf_pipeline, i2s_audio ]
     refresh: 0s  
-        
+    
+  - source:
+      type: git
+      url: https://github.com/esphome/home-assistant-voice-pe
+      ref: dev
+    components:
+#      - aic3204
+#      - audio_dac
+      - media_player
+#      - micro_wake_word
+#      - microphone
+#      - nabu
+#      - nabu_microphone
+#      - voice_assistant
+#      - voice_kit
+    refresh: 0s
+    
+  - source: github://pr#8018
+    components: [http_request]
+    refresh: 0s        
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
@@ -62,7 +88,7 @@ micro_wake_word:
   id: mww
   models:
     - model: okay_nabu
-#      id: okat_nabu
+#      id: okay_nabu
     - model: hey_jarvis
 #      id: hey_jarvis
     - model: hey_mycroft
@@ -86,6 +112,7 @@ api:
 #    - script.execute: reset_display
 
 wifi:
+  power_save_mode: none
   ap:
      ssid: "Raspiaudio-radio"
      password: "12345678"
@@ -158,6 +185,10 @@ globals:
   - id: mute  
     type: bool
     initial_value: 'false'
+  - id: player_int
+    type: bool
+    initial_value: 'false'  
+
     
             
 interval:
@@ -217,7 +248,13 @@ font:
       weight: 300
     id: font_response
     size: 15 
-            
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_station
+    size: 25             
+    
 display:
   - id: myDisplay
     platform: ili9xxx
@@ -249,6 +286,7 @@ display:
               it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
               it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
               it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
+             
 
 # Home Assistant Components            
 sensor:
@@ -305,13 +343,14 @@ sensor:
       then:
         - light.turn_on: screen_backlight      
         - lambda: |-
-                id(lightTO) = 0;       
+                id(lightTO) = 0; 
+                        
     on_clockwise:
       then:
         - light.turn_on: screen_backlight
         - lambda: |-
                 id(lightTO) = 0;    
-                
+                 
 binary_sensor:
   - platform: gpio
     pin:
@@ -322,9 +361,12 @@ binary_sensor:
         pullup: true
     id: click_vol
     name: Volume Button
-    disabled_by_default: true
+#    disabled_by_default: true
     on_click:
       then:
+        - light.turn_on: screen_backlight      
+        - lambda: |-
+                id(lightTO) = 0;        
         - if:
             condition: 
                lambda: 'return (id(mute));' 
@@ -348,15 +390,32 @@ binary_sensor:
     name: Stations Button
     disabled_by_default: true
     on_click:
-      then:      
-         - if:
-             condition:
-                   lambda: 'return(id(phase) == 1);'
-             then:
-                 - voice_assistant.start:    
-                       wake_word: !lambda return("alexa"); 
-   
-                                                
+      then: 
+        - if:
+              condition:
+                 lambda: 'return(id(phase) == 2);'
+              then:           
+#               - homeassistant.service:
+#                    service: media_player.media_pause
+#                    data:
+#                       entity_id: media_player.raspiaudio_radio_radio_media_player
+               - media_player.pause:
+               - lambda: id(phase) = 1; 
+               - lambda: id(player_int) = true;      
+               - script.execute: reset_display                           
+#              else:
+#               - if:
+#                     condition:
+#                        lambda: 'return((id(phase) == 1) && (id(player_int) == true));'
+#                     then:                 
+#                           - homeassistant.service:
+#                                  service: media_player.media_play
+#                                  data:
+#                                      entity_id: media_player.raspiaudio_radio_radio_media_player
+#                           - media_player.play:
+#                           - lambda: id(phase) = 2;
+#                           - lambda: id(player_int) = false;                    
+#                           - script.execute: reset_display                                                 
 text_sensor:
   - id: text_request
     platform: template
@@ -396,15 +455,15 @@ microphone:
       - adf_i2s_in
       - resampler
       - self 
+      
 adf_pipeline:
   - platform: i2s_audio
     type: audio_out
     id: adf_i2s_out
     i2s_audio_id: i2s_shared
     i2s_dout_pin: GPIO17
-    sample_rate: 32000
+    sample_rate: 48000
     bits_per_sample: 16bit
-    fixed_settings: false
 #    fixed_settings: true
     
   - platform: i2s_audio
@@ -412,10 +471,9 @@ adf_pipeline:
     id: adf_i2s_in
     pdm: false
     i2s_audio_id: i2s_shared
-#
     i2s_din_pin: GPIO4
-    sample_rate: 16000 
-    fixed_settings: true     
+    sample_rate: 24000 
+#    fixed_settings: true     
     
 media_player:
   - platform: adf_pipeline
@@ -423,23 +481,34 @@ media_player:
     name: radio_media_player
     internal: false
     keep_pipeline_alive: true
-
+    announcement_audio:
+      sample_rate: 24000
+      bits_per_sample: 16
+      num_channels: 1
     pipeline:
       - self
       - resampler
       - adf_i2s_out
     on_play: 
-      - lambda: |-
-          id(media_state) = true;
-          if(id(phase) == 1){id(myDisplay).show_page(waitingBP);id(myDisplay).update();}
-          id(lightTO) = 0;          
-      - micro_wake_word.stop:
-
+      - if:
+           condition:
+                lambda: 'return(id(phase) != 2);'
+           then:        
+    
+              - lambda: |-
+                   id(lightTO) = 0; 
+                   id(media_state) = true;
+                   if((id(phase) == 1) && (id(player_int) == false)) id(phase) = 2;    
+              - script.execute: mute_off         
+              - micro_wake_word.stop:
+              - script.execute: reset_display
+                            
     on_idle:
       - lambda: id(media_state) = false;
       - if:
           condition:
-              lambda: 'return(id(phase) == 4);'
+              
+              lambda: 'return((id(phase) == 4) || (id(phase) == 2));'
           then:
             - lambda: |-
                  id(phase) = 1;                     
@@ -448,8 +517,8 @@ media_player:
       - lambda: |-
           id(media_state) = false;
           if(id(phase) == 4) id(phase) = 1;
-      - script.execute: reset_display                 
-                  
+      - script.execute: reset_display    
+                                                              
 voice_assistant:
   id: va
   microphone: radio_mic
@@ -465,7 +534,8 @@ voice_assistant:
     - lambda: |-
         id(phase) = 3;  
 #    - media_player.play_media:
-#              media_url: 'https://github.com/RASPIAUDIO/esphomeRadio/raw/main/sounds/tong32000.mp3'                
+#              media_url: 'https://github.com/RASPIAUDIO/esphomeRadio/raw/main/sounds/tong32000.mp3'  
+#    - delay: 2s                        
     - script.execute: reset_display    
 
   on_stt_end:
@@ -485,12 +555,21 @@ voice_assistant:
     - lambda: |-
         id(phase) = 4;
     - script.execute: reset_display  
-        
+
 #  on_end:
 #    - logger.log: "TTS playback finished, switching to waiting page"
 #    - delay: 1sec
 #    - lambda: id(phase) = 1;
-       
+  on_end:
+      - if:
+          condition:
+              lambda: 'return(id(player_int) && (id(phase) == 4));'
+          then:
+            - delay: 5s
+            - lambda: |-
+                   id(phase) = 2;
+                   id(player_int) = false;
+            - script.execute: reset_display              
              
   on_error:
     - logger.log: "ERROR!!!!!!!!!!!!!!!!"  
@@ -520,7 +599,8 @@ script:
        - lambda: |-
              id(lightTO) = 0;
              if(id(phase) == 0)id(logo).execute();
-             if(id(phase) == 1)id(waiting).execute();          
+             if(id(phase) == 1)id(waiting).execute();  
+             if(id(phase) == 2)id(external_player).execute();                      
              if(id(phase) == 3)id(listening).execute();
              if(id(phase) == 4)id(answering).execute();
 
@@ -543,7 +623,8 @@ script:
                          voice_assistant.is_running:
                    then:
                       - delay: 1s  
-                      - voice_assistant.stop:                                                               
+                      - voice_assistant.stop: 
+               - script.execute: mute_on                                                                      
                - micro_wake_word.start: 
                - logger.log: "===> wakeword"                      
                - lambda: |-
@@ -555,8 +636,8 @@ script:
                                                        
   - id: listening
     then: 
-#       - delay: 2s    
        - logger.log: "===> listening"  
+       - script.execute: mute_on       
        - lambda: |-
             id(myDisplay).show_page(listeningP);  
             id(myDisplay).update();     
@@ -567,13 +648,36 @@ script:
   - id: answering
     then:
        - logger.log: "===> answering"  
+       - script.execute: mute_off    
        - lambda: |-
             id(myDisplay).show_page(answeringP);          
             id(myDisplay).update();          
             id(lightTO) = 0;
-       - light.turn_on: screen_backlight       
+       - light.turn_on: screen_backlight  
+    
        
-                
+       
+  - id: external_player
+    then:
+       - logger.log: "===> front end player"  
+#       - script.execute: mute_off
+       - lambda: |-
+            id(myDisplay).show_page(waitingBP);          
+            id(myDisplay).update();          
+            id(lightTO) = 0;
+       - light.turn_on: screen_backlight                
+       
+  - id: mute_on
+    then:
+       - media_player.volume_set:
+            volume: '0'
+       - lambda: id(mute) = true;
+       
+  - id: mute_off
+    then:
+       - media_player.volume_set:
+            volume: !lambda return(id(Vol));
+       - lambda: id(mute) = false;                                
 
       
       
