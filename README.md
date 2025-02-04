@@ -21,7 +21,8 @@
 
 ---
 
-[![YouTube Video](https://img.youtube.com/vi/rKYeiVDZrrU/0.jpg)](https://youtube.com/shorts/rKYeiVDZrrU)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/GGey_L-3grk?si=pOp4KvMd09Yb6AXC" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 
 This ESPHome configuration transforms the [Raspiaudio Muse Radio](https://raspiaudio.com/product/muse-radio/) into a [Home Assistant](https://www.home-assistant.io/) voice satellite.
 
