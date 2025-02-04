@@ -1,5 +1,7 @@
 # Raspiaudio Muse Radio Voice Satellite
 
+   [![YouTube Video](https://img.youtube.com/vi/GGey_L-3grk/0.jpg)](https://youtu.be/GGey_L-3grk?si=UijGHBHlDbeWeOZH)
+
 ## New Version: radio-microWWPlus
 
 ### New Features:
@@ -20,8 +22,6 @@
    - Buttons 1, 2, and 3 are hardcoded for direct radio station playback. Press the button to start or stop the station.
 
 ---
-
-https://youtu.be/GGey_L-3grk?si=UijGHBHlDbeWeOZH
 
 This ESPHome configuration transforms the [Raspiaudio Muse Radio](https://raspiaudio.com/product/muse-radio/) into a [Home Assistant](https://www.home-assistant.io/) voice satellite.
 
