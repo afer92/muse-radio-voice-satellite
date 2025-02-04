@@ -1,16 +1,24 @@
 substitutions:
   name: raspiaudio-radio
   friendly_name: Raspiaudio Radio
-
+  st1_url: http://icecast.radiofrance.fr/fip-midfi.mp3 
+#  st1_url: http://icecast.radiofrance.fr/fip-midfi.aac
+#  st2_url: http://live02.rfi.fr/rfimonde-96k.mp3
+  st2_url: http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3
+  st3_url: http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3
+  st1_name: FIP
+#  st2_name: RFI
+  st2_name: RADIO CLASSIQUE
+  st3_name: JAZZ RADIO
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  min_version: 2024.9.1
-  includes: 
-  libraries: 
+  min_version: 2024.12.2
+#  includes: 
+#  libraries: 
 #    - WiFi
 #    - WiFiClientSecure
-    - 'ESP32-audioI2S=https://github.com/esphome/ESP32-audioI2S'  
+#    - 'ESP32-audioI2S=https://github.com/esphome/ESP32-audioI2S'  
 
   platformio_options:
     board_build.flash_mode: dio
@@ -46,25 +54,9 @@ external_components:
     components: [ adf_pipeline, i2s_audio ]
     refresh: 0s  
     
-  - source:
-      type: git
-      url: https://github.com/esphome/home-assistant-voice-pe
-      ref: dev
-    components:
-#      - aic3204
-#      - audio_dac
-      - media_player
-#      - micro_wake_word
-#      - microphone
-#      - nabu
-#      - nabu_microphone
-#      - voice_assistant
-#      - voice_kit
-    refresh: 0s
-    
-  - source: github://pr#8018
-    components: [http_request]
-    refresh: 0s        
+#  - source: github://pr#8018
+#    components: [http_request]
+#    refresh: 0s        
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
@@ -79,6 +71,7 @@ esp32:
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
       CONFIG_AUDIO_BOARD_CUSTOM: "y"
       CONFIG_ESP32_S3_BOX_3_BOARD: "y"
+
     components:
       - name: esp32_s3_box_3_board
         source: github://jesserockz/esp32-s3-box-3-board@main
@@ -87,7 +80,7 @@ esp32:
 micro_wake_word:
   id: mww
   models:
-    - model: okay_nabu
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
 #      id: okay_nabu
     - model: hey_jarvis
 #      id: hey_jarvis
@@ -95,8 +88,7 @@ micro_wake_word:
 #      id: hey_mycroft
     - model: alexa
 #      id: alexa  
-  vad:
-  
+  vad:  
 #  microphone: raspiaudio_microphone
   on_wake_word_detected:  
     - voice_assistant.start:
@@ -120,8 +112,8 @@ wifi:
 captive_portal:
                 
 logger:
-   level: DEBUG
-
+#   level: DEBUG
+    level: INFO
 ##########
 # Codec Configuration
 es8388:
@@ -174,7 +166,7 @@ globals:
     initial_value: '0'
   - id: Vol
     type: float
-    initial_value: '0.4'    
+    initial_value: '0.3'    
   - id: phase
     type: int
     initial_value: '0'
@@ -187,7 +179,10 @@ globals:
     initial_value: 'false'
   - id: player_int
     type: bool
-    initial_value: 'false'  
+    initial_value: 'false'
+  - id: station
+    type: int
+    initial_value: '0'    
 
     
             
@@ -255,6 +250,48 @@ font:
     id: font_station
     size: 25             
     
+color:
+  - id: green
+    hex: '75D15F'
+  - id: red
+    hex: 'FF3131'
+  - id: blue
+    hex: '47B7E9'
+  - id: blue_drk
+    hex: '085296'
+  - id: amber
+    hex: 'FBAB35'
+  - id: lime
+    hex: '20FC30'
+  - id: pink
+    hex: 'D92BBC'
+  - id: yellow
+    hex: 'FFC000'
+  - id: black
+    hex: '000000'
+  - id: white
+    hex: 'ffffff'
+  - id: purple
+    hex: '73264D'
+  - id: light_blue
+    hex: 'CFE2F3'
+  - id: bg_blue
+    hex: '032341'
+  - id: bg_purple
+    hex: '301020'
+  - id: bg_green
+    hex: '05350B'
+  - id: bg_red
+    hex: '3C0000'
+  - id: bg_pink
+    hex: '61034D'
+  - id: bg_charcoal
+    hex: '323232'
+  - id: bg_brown
+    hex: '41220D'
+  - id: bg_grey
+    hex: '4F4F4F'
+    
 display:
   - id: myDisplay
     platform: ili9xxx
@@ -275,7 +312,10 @@ display:
             it.image(0, 0, id(WFWWIm));        
         - id: waitingBP
           lambda: |-
-            it.image(0, 0, id(WIm));        
+            it.image(0, 0, id(WIm));    
+            if(id(station) == 1)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st1_name}"); 
+            if(id(station) == 2)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st2_name}");               
+            if(id(station) == 3)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st3_name}");                  
         - id: listeningP
           lambda: |-
               it.image(0, 0, id(LIm));            
@@ -349,7 +389,53 @@ sensor:
       then:
         - light.turn_on: screen_backlight
         - lambda: |-
-                id(lightTO) = 0;    
+                id(lightTO) = 0;  
+                
+  - platform: adc 
+    id: button_adc
+    pin: GPIO1
+    attenuation: auto
+    update_interval: .05s
+    on_value_range:
+      - above: 3.0
+        then: 
+          - binary_sensor.template.publish:
+              id: btn_confirm
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_1
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_2
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_3
+              state: OFF
+      - above: 0.41
+        below: 0.45
+        then:
+          - binary_sensor.template.publish:
+              id: btn_3
+              state: ON
+      - above: 0.8
+        below: 0.84
+        then:
+          - binary_sensor.template.publish:
+              id: btn_confirm
+              state: ON
+      - above: 1.50
+        below: 1.61
+        then:
+          - binary_sensor.template.publish:
+              id: btn_1
+              state: ON
+      - above: 1.98
+        below: 2.03
+        then:
+          - binary_sensor.template.publish:
+              id: btn_2
+              state: ON                
+                  
                  
 binary_sensor:
   - platform: gpio
@@ -371,10 +457,12 @@ binary_sensor:
             condition: 
                lambda: 'return (id(mute));' 
             then: 
+               - logger.log: "unmute!"
                - media_player.volume_set: 
                    volume: !lambda return(id(Vol));
                - lambda: id(mute) = false;
             else:
+               - logger.log: "mute!"
                - media_player.volume_set: 
                    volume: '0'
                - lambda: id(mute) = true;  
@@ -395,27 +483,104 @@ binary_sensor:
               condition:
                  lambda: 'return(id(phase) == 2);'
               then:           
-#               - homeassistant.service:
-#                    service: media_player.media_pause
-#                    data:
-#                       entity_id: media_player.raspiaudio_radio_radio_media_player
                - media_player.pause:
                - lambda: id(phase) = 1; 
-               - lambda: id(player_int) = true;      
+               - lambda: id(player_int) = true;
+#               - voice_assistant.start:
+#                    wake_word: 'okay_nabu'      
                - script.execute: reset_display                           
 #              else:
 #               - if:
 #                     condition:
 #                        lambda: 'return((id(phase) == 1) && (id(player_int) == true));'
 #                     then:                 
-#                           - homeassistant.service:
-#                                  service: media_player.media_play
-#                                  data:
-#                                      entity_id: media_player.raspiaudio_radio_radio_media_player
 #                           - media_player.play:
 #                           - lambda: id(phase) = 2;
 #                           - lambda: id(player_int) = false;                    
-#                           - script.execute: reset_display                                                 
+#                           - script.execute: reset_display  
+  - platform: template 
+    name: "Button Confirm"
+    id: btn_confirm
+    on_click:
+       then:
+           - if:
+               condition:
+                   lambda: 'return (id(phase) == 2);'  
+               then:           
+                 - media_player.stop:
+                 - lambda: |-
+                       id(phase) = 1;
+                       id(station) = 0;                     
+                 - script.execute: reset_display      
+
+  - platform: template 
+    name: "Button 1"
+    id: btn_1
+    on_click:
+       then:
+           - if:
+               condition:
+                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'                   
+               then: 
+#                  - if:
+#                       condition:
+#                            media_player.is_playing:
+#                       then:
+#                          - media_player.stop:
+#                          - delay: 1s     
+                  - media_player.play_media:
+                         media_url: "${st1_url}" 
+                  - lambda: |-
+                        id(station) = 1;       
+                        id(phase) = 2; 
+                  - script.execute: mute_off      
+                  - script.execute: reset_display                    
+
+  - platform: template 
+    name: "Button 2"
+    id: btn_2
+    on_click:
+       then:
+           - if:
+               condition:
+                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'
+               then:
+#                  - if:
+#                       condition:
+#                            media_player.is_playing:
+#                       then:
+#                          - media_player.stop:
+#                          - delay: 1s   
+                  - media_player.play_media:       
+                       media_url: "${st2_url}"   
+                  - lambda: |-
+                        id(station) = 2;                          
+                        id(phase) = 2;  
+                  - script.execute: mute_off                                 
+                  - script.execute: reset_display                                              
+  - platform: template 
+    name: "Button 3"
+    id: btn_3   
+    on_click:
+       then:
+           - if:
+               condition:
+                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'                   
+               then:
+#                  - if:
+#                       condition:
+#                            media_player.is_playing:
+#                       then:
+#                          - media_player.stop:
+#                          - delay: 1s   
+                  - media_player.play_media:       
+                      media_url: "${st3_url}"   
+                  - lambda: |-
+                        id(station) = 3; 
+                        id(phase) = 2;   
+                  - script.execute: mute_off                            
+                  - script.execute: reset_display                          
+                                                                           
 text_sensor:
   - id: text_request
     platform: template
@@ -464,7 +629,7 @@ adf_pipeline:
     i2s_dout_pin: GPIO17
     sample_rate: 48000
     bits_per_sample: 16bit
-#    fixed_settings: true
+    fixed_settings: false
     
   - platform: i2s_audio
     type: audio_in
@@ -473,7 +638,7 @@ adf_pipeline:
     i2s_audio_id: i2s_shared
     i2s_din_pin: GPIO4
     sample_rate: 24000 
-#    fixed_settings: true     
+    fixed_settings: false     
     
 media_player:
   - platform: adf_pipeline
@@ -511,7 +676,7 @@ media_player:
               lambda: 'return((id(phase) == 4) || (id(phase) == 2));'
           then:
             - lambda: |-
-                 id(phase) = 1;                     
+                 id(phase) = 1;                   
             - script.execute: reset_display      
     
       - lambda: |-
