@@ -1,43 +1,52 @@
 # Raspiaudio Muse Radio Voice Satellite
 
-## new version ==> radio-microWWPlus
-### new features:
-1. micro wake words : alexa, okay_nabu, hey_jarvis, okay_croft (valid simutaneously!)
-2. sound control : + / - via volume encoder rotate , pause / play  toggle via encoder click
-3. media_player introduction (with an issue (.aac files) to be corrected ...)
-4. front end media player pause via stations encoder click (to interact with the voice assistant)
+## New Version: radio-microWWPlus
 
-----------------------------------------------------------------------------------------------
+### New Features:
 
+1. **Micro Wake Words**: Supports multiple wake words simultaneously - Alexa, Okay Nabu, Hey Jarvis, and Okay Croft. If you want to enable only one, you'll need to edit the YAML configuration.
+   
+2. **Sound Control**:
+   - Adjust volume using the encoder's rotate function.
+   - Toggle pause/play with an encoder click.
 
+3. **Media Player**:
+   - Recommended to use Music Assistant for transcoding, enabling any file format playback and avoiding the AAC bug on the player.
 
+4. **Front-end Media Player Control**:
+   - Pause via the station's encoder click to interact with the voice assistant.
+
+5. **Buttons**: 
+   - Buttons 1, 2, and 3 are hardcoded for direct radio station playback. Press the button to start or stop the station.
+
+---
 
 [![YouTube Video](https://img.youtube.com/vi/rKYeiVDZrrU/0.jpg)](https://youtube.com/shorts/rKYeiVDZrrU)
 
+This ESPHome configuration transforms the [Raspiaudio Muse Radio](https://raspiaudio.com/product/muse-radio/) into a [Home Assistant](https://www.home-assistant.io/) voice satellite.
 
-This is an ESPHome configuration that turns the [Raspiaudio Muse Radio](https://raspiaudio.com/product/muse-radio/) into a [Home Assistant](https://www.home-assistant.io/) voice satellite.
+## ESPHome Radio for Raspiaudio Muse Radio
 
-This project builds upon the work of [Tetele](https://github.com/tetele/muse-radio-voice-satellite) thanks🙏 for you help ! . I have added several screen interfaces and fixed (hopefully) the keyword detection.
-
-## ESPHome Radio for RASPIAUDIO Muse Radio
-
-This project is designed for use with the **RASPIAUDIO Muse Radio**.
-
-### How It Works
-- **Wake Word**: Configure a wake word in Home Assistant - Voice Assistant.
-- **Microphones**: Ensure your pluggable microphones are connected.
-- **Screen Support**: Includes basic screen support using the new LVGL library.
+This project is intended for the **Raspiaudio Muse Radio**.
 
 ### Flashing Your Device
+
 1. Open **Google Chrome**.
 2. Visit [apps.raspiaudio.com](https://apps.raspiaudio.com).
 3. Select **Muse Radio - Home Assistant** and follow the on-screen instructions.
+4. Connect to the access point created by the device with the following credentials:
+   - SSID: "Raspiaudio-radio"
+   - Password: "12345678"
+5. Open a webpage at `192.168.4.1/?save` to set your home Wi-Fi credentials.
 
 ### Source Code
-The source code is available on GitHub: [Raspiaudio Muse Radio Voice Satellite](https://github.com/RASPIAUDIO/muse-radio-voice-satellite)
+
+The source code is available on GitHub: [Raspiaudio Muse Radio Voice Satellite](https://github.com/RASPIAUDIO/muse-radio-voice-satellite). To recompile, ensure you perform a full build clean in ESPHome first.
 
 ### Forum & Support
+
 For discussions and support, visit the [Raspiaudio Forum](https://forum.raspiaudio.com/t/muse-radio-home-assistant/).
 
 ### Step-by-Step Video Guide
-For a detailed video tutorial, watch this [**step-by-step guide**](https://youtu.be/QDDjXAWuk0E) (created for the Luxe, but also applicable to the Muse Radio).
+
+For a detailed video tutorial, watch this [**step-by-step guide**](https://youtu.be/QDDjXAWuk0E). It was created for the Luxe model but is also applicable to the Muse Radio.
