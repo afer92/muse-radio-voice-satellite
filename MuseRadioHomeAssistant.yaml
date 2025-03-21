@@ -59,7 +59,8 @@ logger:
     level: NONE
     
 wifi:
-
+#  ssid: xxxxxxx
+#  password: yyyyyyy
 #  power_save_mode: none
   ap:
      ssid: "Raspiaudio-radio"
@@ -117,7 +118,7 @@ media_player:
 #    volume_max: 0.8
     announcement_pipeline:
       speaker: radio_speaker
-      format: FLAC
+      format: WAV
       sample_rate: 48000
       num_channels: 1  # S3 Box only has one output channel
 #    files:
@@ -440,9 +441,7 @@ display:
         - id: waitingBP
           lambda: |-
             it.image(0, 0, id(WIm));    
-            if(id(station) == 1)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st1_name}"); 
-            if(id(station) == 2)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st2_name}");               
-            if(id(station) == 3)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st3_name}");                  
+           
         - id: listeningP
           lambda: |-
               it.image(0, 0, id(LIm));            
