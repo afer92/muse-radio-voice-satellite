@@ -2,7 +2,7 @@
 
    [![YouTube Video](https://img.youtube.com/vi/GGey_L-3grk/0.jpg)](https://youtu.be/GGey_L-3grk?si=UijGHBHlDbeWeOZH)
 
-## New Version: radio-microWWPlus
+## New Version: MuseRadioHomeAssistant
 
 ### New Features:
 
@@ -16,10 +16,10 @@
    - Recommended to use Music Assistant for transcoding, enabling any file format playback and avoiding the AAC bug on the player.
 
 4. **Front-end Media Player Control**:
-   - Pause via the station's encoder click to interact with the voice assistant.
+   - Stop via the station's encoder click to interact with the voice assistant.
 
 5. **Buttons**: 
-   - Buttons 1, 2, and 3 are hardcoded for direct radio station playback. Press the button to start or stop the station.
+   - Buttons check, 1, 2, and 3 are hardcoded for direct radio station playback.
 
 ---
 
