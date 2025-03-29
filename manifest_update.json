@@ -1,0 +1,14 @@
+{
+  "name": "raspiaudio.voice-assistant",
+  "version": "1.10",
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "ota": {
+         "md5": "7577ce58ada3be382d1469bb00f214a7",
+         "path": "MuseRadioHomeAssistant.bin",
+         "summary": "up-to-date firmware",
+         }
+    }
+    ]     
+}
