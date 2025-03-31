@@ -1,6 +1,9 @@
 # Raspiaudio Muse Radio Voice Satellite
 
    [![YouTube Video](https://img.youtube.com/vi/GGey_L-3grk/0.jpg)](https://youtu.be/GGey_L-3grk?si=UijGHBHlDbeWeOZH)
+   
+# New   
+### This new version (2025.1.10) introduces the OTA Update of Home Assistant. From now on, updates will be very simple and almost automatic...  
 
 ## New Version: MuseRadioHomeAssistant
 
