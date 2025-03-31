@@ -19,7 +19,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.voice-assistant
-    version: "1.10"  
+    version: "2025.1.10"
   on_boot:
     priority: -100
     then:
@@ -87,8 +87,8 @@ update:
   - platform: http_request
     id: update_http_request
     name: Firmware
-    source: https://raw.githubusercontent.com/RASPIAUDIO/raspiaudio.github.io/main/MuseRadio/Homeassistant/manifest_update.json
-  
+#    source: https://raw.githubusercontent.com/RASPIAUDIO/raspiaudio.github.io/main/MuseRadio/Homeassistant/manifest_update.json
+    source: https://raw.githubusercontent.com/RASPIAUDIO/muse-radio-voice-satellite/main/manifest_update.json     
 http_request:  
   
 captive_portal:
