@@ -53,3 +53,13 @@ For discussions and support, visit the [Raspiaudio Forum](https://forum.raspiaud
 ### Step-by-Step Video Guide
 
 For a detailed video tutorial, watch this [**step-by-step guide**](https://youtu.be/QDDjXAWuk0E). It was created for the Luxe model but is also applicable to the Muse Radio.
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// reminder UPDATE
+/////////////////////////////////////////////////////////////////////////////////
+1. .bin ..../.esphome/build/raspiaudio-radio/.pioenvs/raspiaudio-radio/firmware.ota.bin ===> update_firmware.bin
+2. calcul parité ==> >> md5sum update_firmware.bin
+3. modifier avec le résultat la ligne "md5": de manifest_update.json
+/////////////////////////////////////////////////////////////////////////////////
