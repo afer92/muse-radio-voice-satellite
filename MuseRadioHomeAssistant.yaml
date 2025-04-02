@@ -156,9 +156,7 @@ media_player:
       format: WAV
       sample_rate: 48000
       num_channels: 1  
-    files:
-      - id: sound
-        file: bt16000.wav
+
 
     on_announcement: 
       - if:
@@ -233,12 +231,7 @@ voice_assistant:
         effect: none
     - lambda: |-
         id(phase) = 3;  
-    - media_player.speaker.play_on_device_media_file:
-          media_file: sound
-          announcement: false        
-    - media_player.speaker.play_on_device_media_file:
-          media_file: sound
-          announcement: false                              
+                            
     - script.execute: reset_display    
 
   on_stt_end:
@@ -820,9 +813,7 @@ script:
             id(myDisplay).show_page(listeningP);  
             id(myDisplay).update();     
             id(lightTO) = 0;
-#       - media_player.speaker.play_on_device_media_file:
-#                    media_file: sound1
-#                    announcement: true            
+         
        - light.turn_on: screen_backlight   
   
                                                                                         
