@@ -89,9 +89,12 @@ update:
     name: Firmware
 #    source: https://raw.githubusercontent.com/RASPIAUDIO/raspiaudio.github.io/main/MuseRadio/Homeassistant/manifest_update.json
     source: https://raw.githubusercontent.com/RASPIAUDIO/muse-radio-voice-satellite/main/manifest_update.json     
+    
 http_request:  
   
 captive_portal:
+
+improv_serial: 
 
 es8388:
   id: my_es8388
