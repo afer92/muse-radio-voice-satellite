@@ -5,7 +5,8 @@ substitutions:
 #  st1_url: http://icecast.radiofrance.fr/fip-midfi.aac
   st4_url: http://icecast.radiofrance.fr/francemusique-midfi.mp3
   st2_url: http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3
-  st3_url: http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3
+#  st3_url: http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3
+  st3_url:  http://broadcast.infomaniak.ch/frequencejazz-high.mp3
   st1_name: FIP
   st4_name: FRANCE MUSIQUE
   st2_name: RADIO CLASSIQUE
@@ -154,12 +155,16 @@ media_player:
     id: speaker_media_player
 #    volume_min: 0.5
 #    volume_max: 0.8
+#   internal: false   
+    task_stack_in_psram: false
     announcement_pipeline:
       speaker: radio_speaker
       format: WAV
       sample_rate: 48000
       num_channels: 1  
-
+    files:
+      - id: little_sound
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac   
 
     on_announcement: 
       - if:
@@ -781,6 +786,9 @@ script:
   - id: logo
     then:
        - logger.log: "===> logo"
+       - media_player.speaker.play_on_device_media_file:
+           media_file: little_sound
+           announcement: false        
        - lambda: |-
            id(myDisplay).show_page(logoP);
            id(myDisplay).update();         
