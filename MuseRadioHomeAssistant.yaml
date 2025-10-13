@@ -20,7 +20,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.1.11"
+    version: "2025.1.12"
   on_boot:
     priority: -100
     then:
@@ -35,7 +35,7 @@ esphome:
               id: speaker_media_player        
               volume: !lambda return id(Vol);                 
       - script.execute: reset_display
-      - lambda: id(my_es8388).set_volume(0.7);       
+#      - lambda: id(my_es8388).set_volume(0.0);       
       - micro_wake_word.start:       
     
       
@@ -98,11 +98,16 @@ captive_portal:
 improv_serial: 
 
 es8388:
-  id: my_es8388
+#  id: my_es8388
   
 i2c:
+  id: codec_bus
   scl: GPIO11
   sda: GPIO18
+  scan: true
+i2c_device:
+  id: my_es8388
+  address: 0x10 
 
 spi:
   - id: spi_bus0
@@ -133,20 +138,9 @@ speaker:
     dac_type: external
     sample_rate: 48000
     bits_per_sample: 16bit
-    channel: left
+    channel: stereo
     buffer_duration: 100ms   
-  - platform: mixer
-    id: mixer_speaker_id
-    output_speaker: radio_speaker
-    source_speakers:
-      - id: announcement_spk_mixer_input
-      - id: media_spk_mixer_input
-  - platform: resampler
-    id: media_spk_resampling_input
-    output_speaker: media_spk_mixer_input
-  - platform: resampler
-    id: announcement_spk_resampling_input
-    output_speaker: announcement_spk_mixer_input
+
     
   
 media_player:
@@ -156,7 +150,7 @@ media_player:
 #    volume_min: 0.5
 #    volume_max: 0.8
 #   internal: false   
-    task_stack_in_psram: false
+#   task_stack_in_psram: true
     announcement_pipeline:
       speaker: radio_speaker
       format: WAV
@@ -362,7 +356,8 @@ interval:
               lambda: 'return(id(phase) == 0);'
           then:
              - light.turn_on: screen_backlight  
-            
+      
+
                                   
                  
 image:
@@ -597,6 +592,19 @@ sensor:
 binary_sensor:
   - platform: gpio
     pin:
+      number: GPIO10
+      mode:
+        input: true
+        pullup: true
+    id: jack_detect
+    name: Jack Detect
+    internal: true
+    on_press:
+      - script.execute: jack_detect_high
+    on_release:
+      - script.execute: jack_detect_low
+  - platform: gpio
+    pin:
       number: GPIO48
       inverted: true
       mode:
@@ -765,6 +773,8 @@ text_sensor:
           std::string truncated = esphome::str_truncate(name.c_str(),31);
           id(text_response).state = (truncated+"...").c_str();
         }
+
+
      
 
 
@@ -772,8 +782,28 @@ text_sensor:
 # Scripts
 
 script:
+
+  - id: jack_detect_high
+    then:
+       - logger.log: "Jack detect high -> route to speaker"
+       - output.turn_off: dac_mute
+       - lambda: |-
+           id(my_es8388).write_byte(0x1D, 0x20);
+           id(my_es8388).write_byte(0x1C, 0x10);
+           id(my_es8388).write_byte(0x04, 0x30);
+
+  - id: jack_detect_low
+    then:
+       - logger.log: "Jack detect low -> route to line out"
+       - output.turn_on: dac_mute
+       - lambda: |-  
+           id(my_es8388).write_byte(0x1D, 0x00);
+           id(my_es8388).write_byte(0x1C, 0x00);
+           id(my_es8388).write_byte(0x04, 0x0C);
+ 
+
   - id: reset_display
-    then:  
+    then: 
        - logger.log: "===> reset_display" 
        - lambda: |-
              id(lightTO) = 0;
