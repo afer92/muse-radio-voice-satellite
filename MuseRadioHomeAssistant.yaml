@@ -22,21 +22,38 @@ esphome:
     name: raspiaudio.voice-assistant
     version: "2025.1.13"
   on_boot:
-    priority: -100
-    then:
-      - output.turn_off: dac_mute
-      - light.turn_on:
-          id: screen_backlight
-          brightness: 100%
-      - lambda: |-
-              id(lightTO) = 0;
-              id(phase) = 0;
-      - media_player.volume_set: 
-              id: speaker_media_player        
-              volume: !lambda return id(Vol);                 
-      - script.execute: reset_display
+    - priority: 800
+      then:
+        - light.turn_off: screen_backlight
+        - wait_until:
+            condition:
+              lambda: return id(myDisplay).is_ready();
+            timeout: 3s
+        - if:
+            condition:
+              lambda: return id(myDisplay).is_ready();
+            then:
+              - lambda: |-
+                    id(myDisplay).show_page(logoP);
+                    id(myDisplay).update();
+              - light.turn_on: screen_backlight
+            else:
+              - logger.log: "Display not ready during boot splash"
+    - priority: -100
+      then:
+        - output.turn_off: dac_mute
+        - light.turn_on:
+            id: screen_backlight
+            brightness: 100%
+        - lambda: |-
+                id(lightTO) = 0;
+                id(phase) = 0;
+        - media_player.volume_set: 
+                id: speaker_media_player        
+                volume: !lambda return id(Vol);                 
+        - script.execute: reset_display
 #      - lambda: id(my_es8388).set_volume(0.0);       
-      - micro_wake_word.start:       
+        - micro_wake_word.start:       
     
       
 esp32:
@@ -448,6 +465,7 @@ color:
 display:
   - id: myDisplay
     platform: ili9xxx
+    spi_id: spi_bus0
     model: ST7789V
     cs_pin: GPIO40
     dc_pin: GPIO39
@@ -669,19 +687,9 @@ binary_sensor:
        then:
            - if:
                condition:
-                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'                   
+                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 4));'                   
                then: 
-                  - media_player.stop:   
-                  - delay: 500ms
-                  - media_player.play_media:
-                         media_url: "${st4_url}" 
-                  - light.turn_on: screen_backlight                         
-                  - lambda: |-
-                         id(station) = 4;    
-                         id(lightTO) = 0;
-                         id(player_int) = true;                                                
-                         id(myDisplay).show_page(waitingBP);          
-                         id(myDisplay).update(); 
+                  - script.execute: play_station_4 
       
        
   - platform: template 
@@ -691,19 +699,9 @@ binary_sensor:
        then:
            - if:
                condition:
-                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'                   
+                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 1));'                   
                then: 
-                  - media_player.stop:   
-                  - delay: 500ms
-                  - media_player.play_media:
-                         media_url: "${st1_url}" 
-                  - light.turn_on: screen_backlight                         
-                  - lambda: |-
-                         id(station) = 1;    
-                         id(lightTO) = 0;
-                         id(player_int) = true;                                                
-                         id(myDisplay).show_page(waitingBP);          
-                         id(myDisplay).update(); 
+                  - script.execute: play_station_1 
 #                         id(station) = 0;
                 
 
@@ -714,19 +712,9 @@ binary_sensor:
        then:
            - if:
                condition:
-                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'
+                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 2));'
                then: 
-                  - media_player.stop:   
-                  - delay: 500ms               
-                  - media_player.play_media:       
-                       media_url: "${st2_url}"            
-                  - light.turn_on: screen_backlight                                       
-                  - lambda: |-
-                         id(station) = 2;  
-                         id(lightTO) = 0;  
-                         id(player_int) = true;                                                
-                         id(myDisplay).show_page(waitingBP);          
-                         id(myDisplay).update(); 
+                  - script.execute: play_station_2 
 #                         id(station) = 0;
           
                                                                             
@@ -737,19 +725,9 @@ binary_sensor:
        then:
            - if:
                condition:
-                   lambda: 'return((id(phase) == 1) || (id(phase) == 2));'                   
+                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 3));'                   
                then:
-                  - media_player.stop:   
-                  - delay: 500ms
-                  - media_player.play_media:       
-                      media_url: "${st3_url}"   
-                  - light.turn_on: screen_backlight                       
-                  - lambda: |-
-                         id(station) = 3;  
-                         id(lightTO) = 0;  
-                         id(player_int) = false;                                                
-                         id(myDisplay).show_page(waitingBP);          
-                         id(myDisplay).update();  
+                  - script.execute: play_station_3 
 #                         id(station) = 0; 
               
                                                
@@ -869,6 +847,190 @@ script:
             id(lightTO) = 0;
        - light.turn_on: screen_backlight  
        - delay: 10s
+
+  - id: play_station_1
+    mode: restart
+    then:
+       - if:
+           condition:
+             voice_assistant.is_running:
+           then:
+             - voice_assistant.stop:
+             - wait_until:
+                 condition:
+                   not:
+                     voice_assistant.is_running
+                 timeout: 2s
+       - if:
+           condition:
+             voice_assistant.is_running
+           then:
+             - logger.log: "voice assistant stop timeout"
+       - micro_wake_word.stop:
+       - if:
+           condition:
+             media_player.is_playing: speaker_media_player
+           then:
+             - media_player.stop:
+             - wait_until:
+                 condition:
+                   media_player.is_idle: speaker_media_player
+                 timeout: 2s
+       - if:
+           condition:
+             not:
+               media_player.is_idle: speaker_media_player
+           then:
+             - logger.log: "media player stop timeout"
+       - delay: 200ms
+       - script.execute: mute_off
+       - media_player.play_media:
+           media_url: "${st1_url}"
+       - lambda: |-
+            id(station) = 1;
+            id(phase) = 2;
+            id(media_state) = true;
+            id(player_int) = true;
+            id(lightTO) = 0;
+       - script.execute: reset_display
+
+  - id: play_station_2
+    mode: restart
+    then:
+       - if:
+           condition:
+             voice_assistant.is_running:
+           then:
+             - voice_assistant.stop:
+             - wait_until:
+                 condition:
+                   not:
+                     voice_assistant.is_running
+                 timeout: 2s
+       - if:
+           condition:
+             voice_assistant.is_running
+           then:
+             - logger.log: "voice assistant stop timeout"
+       - micro_wake_word.stop:
+       - if:
+           condition:
+             media_player.is_playing: speaker_media_player
+           then:
+             - media_player.stop:
+             - wait_until:
+                 condition:
+                   media_player.is_idle: speaker_media_player
+                 timeout: 2s
+       - if:
+           condition:
+             not:
+               media_player.is_idle: speaker_media_player
+           then:
+             - logger.log: "media player stop timeout"
+       - delay: 200ms
+       - script.execute: mute_off
+       - media_player.play_media:
+           media_url: "${st2_url}"
+       - lambda: |-
+            id(station) = 2;
+            id(phase) = 2;
+            id(media_state) = true;
+            id(lightTO) = 0;
+            id(player_int) = true;
+       - script.execute: reset_display
+
+  - id: play_station_3
+    mode: restart
+    then:
+       - if:
+           condition:
+             voice_assistant.is_running:
+           then:
+             - voice_assistant.stop:
+             - wait_until:
+                 condition:
+                   not:
+                     voice_assistant.is_running
+                 timeout: 2s
+       - if:
+           condition:
+             voice_assistant.is_running
+           then:
+             - logger.log: "voice assistant stop timeout"
+       - micro_wake_word.stop:
+       - if:
+           condition:
+             media_player.is_playing: speaker_media_player
+           then:
+             - media_player.stop:
+             - wait_until:
+                 condition:
+                   media_player.is_idle: speaker_media_player
+                 timeout: 2s
+       - if:
+           condition:
+             not:
+               media_player.is_idle: speaker_media_player
+           then:
+             - logger.log: "media player stop timeout"
+       - delay: 200ms
+       - script.execute: mute_off
+       - media_player.play_media:
+           media_url: "${st3_url}"
+       - lambda: |-
+            id(station) = 3;
+            id(phase) = 2;
+            id(media_state) = true;
+            id(lightTO) = 0;
+            id(player_int) = false;
+       - script.execute: reset_display
+
+  - id: play_station_4
+    mode: restart
+    then:
+       - if:
+           condition:
+             voice_assistant.is_running:
+           then:
+             - voice_assistant.stop:
+             - wait_until:
+                 condition:
+                   not:
+                     voice_assistant.is_running
+                 timeout: 2s
+       - if:
+           condition:
+             voice_assistant.is_running
+           then:
+             - logger.log: "voice assistant stop timeout"
+       - micro_wake_word.stop:
+       - if:
+           condition:
+             media_player.is_playing: speaker_media_player
+           then:
+             - media_player.stop:
+             - wait_until:
+                 condition:
+                   media_player.is_idle: speaker_media_player
+                 timeout: 2s
+       - if:
+           condition:
+             not:
+               media_player.is_idle: speaker_media_player
+           then:
+             - logger.log: "media player stop timeout"
+       - delay: 200ms
+       - script.execute: mute_off
+       - media_player.play_media:
+           media_url: "${st4_url}"
+       - lambda: |-
+            id(station) = 4;
+            id(phase) = 2;
+            id(media_state) = true;
+            id(lightTO) = 0;
+            id(player_int) = true;
+       - script.execute: reset_display
     
        
        
