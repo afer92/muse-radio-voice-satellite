@@ -66,8 +66,9 @@ api:
 #    - script.execute: reset_display
 
 logger:
+  level: INFO
   logs:
-    level: DEBUG
+    sensor: WARN
     
 wifi:
 #  ssid: xxxxx
@@ -211,7 +212,6 @@ media_player:
             
 micro_wake_word:
   models:
-    - alexa
     - okay_nabu
   on_wake_word_detected:
     - voice_assistant.start:
@@ -807,7 +807,7 @@ script:
        - logger.log: "===> reset_display" 
        - lambda: |-
              id(lightTO) = 0;
-             if(id(phase) == 0)id(logo).execute();
+             if((id(phase) == 0) && (!id(logo).is_running()))id(logo).execute();
              if(id(phase) == 1)id(waiting).execute();  
              if(id(phase) == 2)id(external_player).execute();                      
              if(id(phase) == 3)id(listening).execute();
@@ -859,6 +859,7 @@ script:
   
                                                                                         
   - id: answering
+    mode: restart
     then:
        - logger.log: "===> answering"  
        - script.execute: mute_off    
