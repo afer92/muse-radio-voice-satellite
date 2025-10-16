@@ -324,6 +324,9 @@ globals:
   - id: mute  
     type: bool
     initial_value: 'false'
+  - id: mic_muted
+    type: bool
+    initial_value: 'false'
    
             
 interval:
@@ -664,6 +667,54 @@ binary_sensor:
     on_press:
        - logger.log: "Radio 3 button pressed"
               
+switch:
+  - platform: template
+    id: mic_mute_switch
+    name: "Microphone Mute"
+    icon: "mdi:microphone-off"
+    entity_category: config
+    lambda: |-
+      return id(mic_muted);
+    turn_on_action:
+      - microphone.mute: radio_mic
+      - lambda: id(mic_muted) = true;
+      - if:
+          condition:
+            voice_assistant.is_running:
+          then:
+            - voice_assistant.stop:
+      - micro_wake_word.stop:
+    turn_off_action:
+      - microphone.unmute: radio_mic
+      - lambda: id(mic_muted) = false;
+      - micro_wake_word.start:
+                                        
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(okay_nabu).set_probability_cutoff(217);
+          id(hey_jarvis).set_probability_cutoff(247);
+          id(hey_mycroft).set_probability_cutoff(253);
+        } else if (x == "Moderately sensitive") {
+          id(okay_nabu).set_probability_cutoff(176);
+          id(hey_jarvis).set_probability_cutoff(235);
+          id(hey_mycroft).set_probability_cutoff(242);
+        } else if (x == "Very sensitive") {
+          id(okay_nabu).set_probability_cutoff(143);
+          id(hey_jarvis).set_probability_cutoff(212);
+          id(hey_mycroft).set_probability_cutoff(237);
+        }
                                                
 text_sensor:
   - id: text_request
