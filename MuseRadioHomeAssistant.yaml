@@ -373,6 +373,10 @@ image:
     id: AIm
     resize: 320x240
     type: RGB  
+  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute.png" 
+    id: muteIm
+    resize: 320x240
+    type: RGB  
        
 font:
   - file:
@@ -460,6 +464,9 @@ display:
               it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
               it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
               it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
+        - id: muteP
+          lambda: |-
+            it.image(0, 0, id(muteIm));
              
 
 # Home Assistant Components            
@@ -684,10 +691,12 @@ switch:
           then:
             - voice_assistant.stop:
       - micro_wake_word.stop:
+      - script.execute: reset_display
     turn_off_action:
       - microphone.unmute: radio_mic
       - lambda: id(mic_muted) = false;
       - micro_wake_word.start:
+      - script.execute: reset_display
                                         
 select:
   - platform: template
@@ -768,13 +777,27 @@ script:
   - id: reset_display
     then: 
        - logger.log: "===> reset_display" 
-       - lambda: |-
-             id(lightTO) = 0;
-             if((id(phase) == 0) && (!id(logo).is_running()))id(logo).execute();
-             if(id(phase) == 1)id(waiting).execute();  
-             if(id(phase) == 2)id(external_player).execute();                      
-             if(id(phase) == 3)id(listening).execute();
-             if(id(phase) == 4)id(answering).execute();
+       - lambda: id(lightTO) = 0;
+       - if:
+           condition:
+             lambda: 'return id(mic_muted);'
+           then:
+             - lambda: |-
+                 id(myDisplay).show_page(muteP);
+                 id(myDisplay).update();
+           else:
+              - lambda: |-
+                  if ((id(phase) == 0) && (!id(logo).is_running())) {
+                    id(logo).execute();
+                  } else if (id(phase) == 1) {
+                    id(waiting).execute();
+                  } else if (id(phase) == 2) {
+                    id(external_player).execute();
+                  } else if (id(phase) == 3) {
+                    id(listening).execute();
+                  } else if (id(phase) == 4) {
+                    id(answering).execute();
+                  }
 
   - id: logo
     then:
