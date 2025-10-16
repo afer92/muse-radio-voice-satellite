@@ -1,16 +1,6 @@
 substitutions:
   name: raspiaudio-radio
   friendly_name: Raspiaudio Radio
-  st1_url: http://icecast.radiofrance.fr/fip-midfi.mp3 
-#  st1_url: http://icecast.radiofrance.fr/fip-midfi.aac
-  st4_url: http://icecast.radiofrance.fr/francemusique-midfi.mp3
-  st2_url: http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3
-#  st3_url: http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3
-  st3_url:  http://broadcast.infomaniak.ch/frequencejazz-high.mp3
-  st1_name: FIP
-  st4_name: FRANCE MUSIQUE
-  st2_name: RADIO CLASSIQUE
-  st3_name: JAZZ RADIO
  
  
 esphome:
@@ -185,7 +175,6 @@ media_player:
            then:            
               - lambda: |-
                    id(lightTO) = 0; 
-                   id(media_state) = true;
                    if(id(phase) == 1) id(phase) = 2;    
               - script.execute: mute_off         
               - micro_wake_word.stop:
@@ -199,34 +188,21 @@ media_player:
               media_player.is_announcing:
           - not:
               voice_assistant.is_running:    
-      - lambda: id(station) = 0;
       - if:
           condition:             
               lambda: 'return(id(phase) == 4);'
-
           then:
-            - if:
-                 condition:
-                     lambda: 'return(id(player_int));'
-                 then:    
-                   - lambda: |-
-                         id(phase) = 2;
-                         id(player_int) = false;
-                   - media_player.play:
-                   - script.execute: reset_display                      
-                 else:
-                   - lambda: |-
-                         id(phase) = 1;
-                   - script.execute: reset_display                            
-          else:
-             - if:
-                 condition:
-                      lambda: 'return(id(phase) == 2);'
-                 then:
-                    - lambda: |-
-                          id(phase) = 1;                                              
-                    - script.execute: reset_display        
-            
+            - lambda: |-
+                  id(phase) = 1;
+            - script.execute: reset_display
+      - if:
+          condition:
+               lambda: 'return(id(phase) == 2);'
+          then:
+            - lambda: |-
+                  id(phase) = 1;
+            - script.execute: reset_display        
+              
 micro_wake_word:
   id: mww
   microphone: radio_mic
@@ -290,15 +266,11 @@ voice_assistant:
           - not:
               voice_assistant.is_running:
     - if:
-          condition:
-              lambda: 'return(id(player_int) && (id(phase) == 4));'
-          then:
-            - delay: 5s
-            - lambda: |-
-                   id(phase) = 2;
-                   id(player_int) = false;
-            - media_player.play:        
-            - script.execute: reset_display                
+        condition:
+          lambda: 'return(id(phase) != 1);'
+        then:
+          - lambda: id(phase) = 1;
+          - script.execute: reset_display                
               
              
              
@@ -349,19 +321,9 @@ globals:
   - id: phase
     type: int
     initial_value: '0'
-  - id: media_state
-    type: bool
-    restore_value: no
-    initial_value: "false"
   - id: mute  
     type: bool
     initial_value: 'false'
-  - id: player_int
-    type: bool
-    initial_value: 'false'
-  - id: station
-    type: int
-    initial_value: '0'   
    
             
 interval:
@@ -414,7 +376,6 @@ font:
       type: gfonts
       family: Figtree
       weight: 300
-      italic: true
     id: font_request
     size: 15 
   - file:
@@ -422,13 +383,7 @@ font:
       family: Figtree
       weight: 300
     id: font_response
-    size: 15 
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 300
-    id: font_station
-    size: 25             
+    size: 15             
     
 color:
   - id: green
@@ -437,8 +392,6 @@ color:
     hex: 'FF3131'
   - id: blue
     hex: '47B7E9'
-  - id: blue_drk
-    hex: '085296'
   - id: amber
     hex: 'FBAB35'
   - id: lime
@@ -494,10 +447,6 @@ display:
         - id: waitingBP
           lambda: |-
             it.image(0, 0, id(WIm));    
-            if(id(station) == 1)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st1_name}"); 
-            if(id(station) == 2)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st2_name}");               
-            if(id(station) == 3)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER, "${st3_name}"); 
-            if(id(station) == 4)it.printf(160, 220, id(font_station), blue_drk, TextAlign::CENTER,  "${st4_name}");                        
         - id: listeningP
           lambda: |-
               it.image(0, 0, id(LIm));            
@@ -679,66 +628,41 @@ binary_sensor:
                  - media_player.stop:
                  - delay: 2sec                                              
                  - micro_wake_word.start:    
-                 - light.turn_on: screen_backlight                  
-                 - lambda: |-
-                       id(phase) = 1;
-                       id(station) = 0;  
-                       id(lightTO) = 0;  
-                       id(player_int) = false ;                   
-                       id(myDisplay).show_page(waitingBP);          
-                       id(myDisplay).update();                                        
-                 - script.execute: reset_display                          
+        - light.turn_on: screen_backlight                  
+        - lambda: |-
+              id(phase) = 1;
+              id(lightTO) = 0;  
+              id(myDisplay).show_page(waitingBP);          
+              id(myDisplay).update();                                        
+        - script.execute: reset_display                          
 
 
   - platform: template 
     name: "Radio 4"
     id: btn_confirm
     on_press:
-       then:
-           - if:
-               condition:
-                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 4));'                   
-               then: 
-                  - script.execute: play_station_4 
+       - logger.log: "Radio 4 button pressed"
       
        
   - platform: template 
     name: "Radio 1"
     id: btn_1
     on_press:
-       then:
-           - if:
-               condition:
-                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 1));'                   
-               then: 
-                  - script.execute: play_station_1 
-#                         id(station) = 0;
+       - logger.log: "Radio 1 button pressed"
                 
 
   - platform: template 
     name: "Radio 2"
     id: btn_2
     on_press:
-       then:
-           - if:
-               condition:
-                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 2));'
-               then: 
-                  - script.execute: play_station_2 
-#                         id(station) = 0;
+       - logger.log: "Radio 2 button pressed"
           
                                                                             
   - platform: template 
     name: "Radio 3"
     id: btn_3   
     on_press:
-       then:
-           - if:
-               condition:
-                   lambda: 'return(((id(phase) == 1) || (id(phase) == 2)) && (id(station) != 3));'                   
-               then:
-                  - script.execute: play_station_3 
-#                         id(station) = 0; 
+       - logger.log: "Radio 3 button pressed"
               
                                                
 text_sensor:
@@ -747,7 +671,7 @@ text_sensor:
     on_value:
       lambda: |-
         if(id(text_request).state.length()>40) {
-          std::string name = id(text_request).state.c_str();http://croonerradio.ice.infomaniak.ch/croonerradio-midfi.mp3
+          std::string name = id(text_request).state.c_str();
           std::string truncated = esphome::str_truncate(name.c_str(),39);
           id(text_request).state = (truncated+"...").c_str();
         }
@@ -858,189 +782,6 @@ script:
        - light.turn_on: screen_backlight  
        - delay: 10s
 
-  - id: play_station_1
-    mode: restart
-    then:
-       - if:
-           condition:
-             voice_assistant.is_running:
-           then:
-             - voice_assistant.stop:
-             - wait_until:
-                 condition:
-                   not:
-                     voice_assistant.is_running
-                 timeout: 2s
-       - if:
-           condition:
-             voice_assistant.is_running
-           then:
-             - logger.log: "voice assistant stop timeout"
-       - micro_wake_word.stop:
-       - if:
-           condition:
-             media_player.is_playing: speaker_media_player
-           then:
-             - media_player.stop:
-             - wait_until:
-                 condition:
-                   media_player.is_idle: speaker_media_player
-                 timeout: 2s
-       - if:
-           condition:
-             not:
-               media_player.is_idle: speaker_media_player
-           then:
-             - logger.log: "media player stop timeout"
-       - delay: 200ms
-       - script.execute: mute_off
-       - media_player.play_media:
-           media_url: "${st1_url}"
-       - lambda: |-
-            id(station) = 1;
-            id(phase) = 2;
-            id(media_state) = true;
-            id(player_int) = true;
-            id(lightTO) = 0;
-       - script.execute: reset_display
-
-  - id: play_station_2
-    mode: restart
-    then:
-       - if:
-           condition:
-             voice_assistant.is_running:
-           then:
-             - voice_assistant.stop:
-             - wait_until:
-                 condition:
-                   not:
-                     voice_assistant.is_running
-                 timeout: 2s
-       - if:
-           condition:
-             voice_assistant.is_running
-           then:
-             - logger.log: "voice assistant stop timeout"
-       - micro_wake_word.stop:
-       - if:
-           condition:
-             media_player.is_playing: speaker_media_player
-           then:
-             - media_player.stop:
-             - wait_until:
-                 condition:
-                   media_player.is_idle: speaker_media_player
-                 timeout: 2s
-       - if:
-           condition:
-             not:
-               media_player.is_idle: speaker_media_player
-           then:
-             - logger.log: "media player stop timeout"
-       - delay: 200ms
-       - script.execute: mute_off
-       - media_player.play_media:
-           media_url: "${st2_url}"
-       - lambda: |-
-            id(station) = 2;
-            id(phase) = 2;
-            id(media_state) = true;
-            id(lightTO) = 0;
-            id(player_int) = true;
-       - script.execute: reset_display
-
-  - id: play_station_3
-    mode: restart
-    then:
-       - if:
-           condition:
-             voice_assistant.is_running:
-           then:
-             - voice_assistant.stop:
-             - wait_until:
-                 condition:
-                   not:
-                     voice_assistant.is_running
-                 timeout: 2s
-       - if:
-           condition:
-             voice_assistant.is_running
-           then:
-             - logger.log: "voice assistant stop timeout"
-       - micro_wake_word.stop:
-       - if:
-           condition:
-             media_player.is_playing: speaker_media_player
-           then:
-             - media_player.stop:
-             - wait_until:
-                 condition:
-                   media_player.is_idle: speaker_media_player
-                 timeout: 2s
-       - if:
-           condition:
-             not:
-               media_player.is_idle: speaker_media_player
-           then:
-             - logger.log: "media player stop timeout"
-       - delay: 200ms
-       - script.execute: mute_off
-       - media_player.play_media:
-           media_url: "${st3_url}"
-       - lambda: |-
-            id(station) = 3;
-            id(phase) = 2;
-            id(media_state) = true;
-            id(lightTO) = 0;
-            id(player_int) = false;
-       - script.execute: reset_display
-
-  - id: play_station_4
-    mode: restart
-    then:
-       - if:
-           condition:
-             voice_assistant.is_running:
-           then:
-             - voice_assistant.stop:
-             - wait_until:
-                 condition:
-                   not:
-                     voice_assistant.is_running
-                 timeout: 2s
-       - if:
-           condition:
-             voice_assistant.is_running
-           then:
-             - logger.log: "voice assistant stop timeout"
-       - micro_wake_word.stop:
-       - if:
-           condition:
-             media_player.is_playing: speaker_media_player
-           then:
-             - media_player.stop:
-             - wait_until:
-                 condition:
-                   media_player.is_idle: speaker_media_player
-                 timeout: 2s
-       - if:
-           condition:
-             not:
-               media_player.is_idle: speaker_media_player
-           then:
-             - logger.log: "media player stop timeout"
-       - delay: 200ms
-       - script.execute: mute_off
-       - media_player.play_media:
-           media_url: "${st4_url}"
-       - lambda: |-
-            id(station) = 4;
-            id(phase) = 2;
-            id(media_state) = true;
-            id(lightTO) = 0;
-            id(player_int) = true;
-       - script.execute: reset_display
     
        
        
