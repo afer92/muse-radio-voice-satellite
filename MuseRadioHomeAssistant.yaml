@@ -228,8 +228,16 @@ media_player:
                     - script.execute: reset_display        
             
 micro_wake_word:
+  id: mww
+  microphone: radio_mic
+  stop_after_detection: false
   models:
-    - okay_nabu
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/v2.1_models/okay_nabu.json
+      id: okay_nabu
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/v2.1_models/hey_jarvis.json
+      id: hey_jarvis
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/v2.1_models/hey_mycroft.json
+      id: hey_mycroft
   on_wake_word_detected:
     - voice_assistant.start:
         wake_word: !lambda return wake_word;
@@ -238,6 +246,8 @@ voice_assistant:
   id: va
   microphone: radio_mic
   media_player: speaker_media_player
+  micro_wake_word: mww
+  use_wake_word: false
   noise_suppression_level: 2
   auto_gain: 31dBFS
   volume_multiplier: 2.0
