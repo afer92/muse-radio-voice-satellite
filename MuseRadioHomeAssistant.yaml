@@ -353,23 +353,23 @@ interval:
                                   
                  
 image:
-  - file: "https://github.com/RASPIAUDIO/esphomeRadio/raw/main/images/Raspiaudio.png"
+  - file: "https://github.com/esphome/home-assistant-voice-pe/raw/dev/images/Raspiaudio.png"
     id: raspiIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/esphomeRadio/raw/main/images/WFWW.png" 
+  - file:  "https://github.com/esphome/home-assistant-voice-pe/raw/dev/images/WFWW.png" 
     id: WFWWIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/esphomeRadio/raw/main/images/W.png" 
+  - file:  "https://github.com/esphome/home-assistant-voice-pe/raw/dev/images/W.png" 
     id: WIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/esphomeRadio/raw/main/images/LISTEN.png" 
+  - file:  "https://github.com/esphome/home-assistant-voice-pe/raw/dev/images/LISTEN.png" 
     id: LIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/esphomeRadio/raw/main/images/ANSWER.png" 
+  - file:  "https://github.com/esphome/home-assistant-voice-pe/raw/dev/images/ANSWER.png" 
     id: AIm
     resize: 320x240
     type: RGB  
