@@ -656,30 +656,62 @@ binary_sensor:
             id(lightTO) = 0;
         - if:
             condition:
-              media_player.is_announcing:
+              lambda: 'return(id(phase) == 3 || id(phase) == 4);'
             then:
-              - media_player.stop:
-                  id: speaker_media_player
-                  announcement: true
-        - if:
-            condition:
-              media_player.is_playing:
-            then:
-              - media_player.stop:
-                  id: speaker_media_player
-        - if:
-            condition:
-              voice_assistant.is_running:
-            then:
-              - voice_assistant.stop:
-              - wait_until:
-                  not:
+              - if:
+                  condition:
                     voice_assistant.is_running:
-        - micro_wake_word.stop:
-        - lambda: |-
-            id(phase) = 3;
-        - script.execute: reset_display
-        - voice_assistant.start:
+                  then:
+                    - voice_assistant.stop:
+                    - wait_until:
+                        not:
+                          voice_assistant.is_running:
+              - if:
+                  condition:
+                    media_player.is_announcing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+                        announcement: true
+              - if:
+                  condition:
+                    media_player.is_playing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+              - micro_wake_word.start:
+              - lambda: |-
+                  id(mute) = false;
+                  id(auto_mute_active) = false;
+                  id(phase) = 1;
+              - script.execute: reset_display
+            else:
+              - if:
+                  condition:
+                    media_player.is_announcing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+                        announcement: true
+              - if:
+                  condition:
+                    media_player.is_playing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+              - if:
+                  condition:
+                    voice_assistant.is_running:
+                  then:
+                    - voice_assistant.stop:
+                    - wait_until:
+                        not:
+                          voice_assistant.is_running:
+              - micro_wake_word.stop:
+              - lambda: |-
+                  id(phase) = 3;
+              - script.execute: reset_display
+              - voice_assistant.start:
 
 
   - platform: template 
