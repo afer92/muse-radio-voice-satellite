@@ -170,16 +170,21 @@ media_player:
 
     on_announcement: 
       - if:
-           condition:
-                lambda: 'return(id(phase) != 2);'
-           then:            
-              - lambda: |-
-                   id(lightTO) = 0; 
-                   if(id(phase) == 1) id(phase) = 2;    
-              - script.execute: mute_off         
-              - micro_wake_word.stop:
-              - script.execute: reset_display
-              
+          condition:
+            lambda: 'return(id(phase) != 2);'
+          then:
+            - lambda: |-
+                id(lightTO) = 0;
+                if (id(phase) == 1) {
+                  id(phase) = 2;
+                  id(external_player).execute();
+                }
+            - if:
+                condition:
+                  lambda: 'return id(auto_mute_active);'
+                then:
+                  - script.execute: mute_off
+      - micro_wake_word.stop:
          
     on_idle:
       - wait_until:
@@ -809,6 +814,7 @@ script:
  
 
   - id: reset_display
+    mode: restart
     then: 
        - logger.log: "===> reset_display" 
        - lambda: |-
@@ -851,6 +857,7 @@ script:
        - script.execute: reset_display       
 
   - id: waiting
+    mode: restart
     then:     
                - if:
                    condition:
@@ -869,6 +876,7 @@ script:
           
                                                        
   - id: listening
+    mode: restart
     then: 
        - logger.log: "===> listening"  
        - script.execute: mute_on     
@@ -896,6 +904,7 @@ script:
        
        
   - id: external_player
+    mode: restart
     then:
        - logger.log: "===> front end player"  
 #       - script.execute: mute_off
@@ -907,17 +916,27 @@ script:
        
   - id: mute_on
     then:
-       - media_player.volume_set:
-            volume: '0'
-       - lambda: id(mute) = true;
-       - lambda: id(auto_mute_active) = true;
+      - if:
+          condition:
+            lambda: 'return !id(auto_mute_active);'
+          then:
+            - media_player.volume_set:
+                volume: '0'
+      - lambda: |-
+          id(mute) = true;
+          id(auto_mute_active) = true;
 
   - id: mute_off
     then:
-       - media_player.volume_set:
-            volume: !lambda return(id(Vol));
-       - lambda: id(mute) = false;
-       - lambda: id(auto_mute_active) = false;
+      - if:
+          condition:
+            lambda: 'return id(auto_mute_active);'
+          then:
+            - media_player.volume_set:
+                volume: !lambda return(id(Vol));
+      - lambda: |-
+          id(mute) = false;
+          id(auto_mute_active) = false;
 
       
       
