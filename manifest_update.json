@@ -5,7 +5,7 @@
     {
       "chipFamily": "ESP32-S3",
       "ota": {
-         "md5": "ee5f397eb5f9c070630840c0946d84e0",  
+         "md5": "357a1749d2702bdd24050a1a5f19c165",  
          "path": "https://raw.githubusercontent.com/RASPIAUDIO/muse-radio-voice-satellite/main/update_firmware.bin",
          "offset": 0,
          "summary": "Latest firmware"
