@@ -330,6 +330,9 @@ globals:
   - id: mic_muted
     type: bool
     initial_value: 'false'
+  - id: auto_mute_active
+    type: bool
+    initial_value: 'false'
    
             
 interval:
@@ -376,8 +379,12 @@ image:
     id: AIm
     resize: 320x240
     type: RGB  
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute.png" 
-    id: muteIm
+  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute_mic.png" 
+    id: muteMicIm
+    resize: 320x240
+    type: RGB  
+  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute_speaker.png" 
+    id: muteSpeakerIm
     resize: 320x240
     type: RGB  
        
@@ -467,9 +474,12 @@ display:
               it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
               it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
               it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
-        - id: muteP
+        - id: muteMicP
           lambda: |-
-            it.image(0, 0, id(muteIm));
+            it.image(0, 0, id(muteMicIm));
+        - id: muteSpeakerP
+          lambda: |-
+            it.image(0, 0, id(muteSpeakerIm));
              
 
 # Home Assistant Components            
@@ -605,22 +615,25 @@ binary_sensor:
 #    disabled_by_default: true
     on_press:
       then:
-        - light.turn_on: screen_backlight      
+        - light.turn_on: screen_backlight
         - lambda: |-
-                id(lightTO) = 0;        
+            id(lightTO) = 0;
         - if:
-            condition: 
-               lambda: 'return (id(mute));' 
-            then: 
-               - logger.log: "unmute!"
-               - media_player.volume_set: 
-                   volume: !lambda return(id(Vol));
-               - lambda: id(mute) = false;
+            condition:
+              lambda: 'return id(mute);'
+            then:
+              - logger.log: "unmute!"
+              - media_player.volume_set:
+                  volume: !lambda 'return id(Vol);'
+              - lambda: id(mute) = false;
+              - lambda: id(auto_mute_active) = false;
             else:
-               - logger.log: "mute!"
-               - media_player.volume_set: 
-                   volume: '0'
-               - lambda: id(mute) = true;  
+              - logger.log: "mute!"
+              - media_player.volume_set:
+                  volume: '0'
+              - lambda: id(mute) = true;
+              - lambda: id(auto_mute_active) = false;
+        - script.execute: reset_display
                     
   - platform: gpio
     pin:
@@ -630,24 +643,38 @@ binary_sensor:
         input: true
         pullup: true
     id: click_sta
-    name: Stop
-    disabled_by_default: true
+    name: Assist
     on_click:
-      then: 
-        - if:
-              condition:
-                 lambda: 'return(id(phase) == 2);'
-              then:           
-                 - media_player.stop:
-                 - delay: 2sec                                              
-                 - micro_wake_word.start:    
-        - light.turn_on: screen_backlight                  
+      then:
+        - light.turn_on: screen_backlight
         - lambda: |-
-              id(phase) = 1;
-              id(lightTO) = 0;  
-              id(myDisplay).show_page(waitingBP);          
-              id(myDisplay).update();                                        
-        - script.execute: reset_display                          
+            id(lightTO) = 0;
+        - if:
+            condition:
+              media_player.is_announcing:
+            then:
+              - media_player.stop:
+                  id: speaker_media_player
+                  announcement: true
+        - if:
+            condition:
+              media_player.is_playing:
+            then:
+              - media_player.stop:
+                  id: speaker_media_player
+        - if:
+            condition:
+              voice_assistant.is_running:
+            then:
+              - voice_assistant.stop:
+              - wait_until:
+                  not:
+                    voice_assistant.is_running:
+        - micro_wake_word.stop:
+        - lambda: |-
+            id(phase) = 3;
+        - script.execute: reset_display
+        - voice_assistant.start:
 
 
   - platform: template 
@@ -784,27 +811,29 @@ script:
   - id: reset_display
     then: 
        - logger.log: "===> reset_display" 
-       - lambda: id(lightTO) = 0;
-       - if:
-           condition:
-             lambda: 'return id(mic_muted);'
-           then:
-             - lambda: |-
-                 id(myDisplay).show_page(muteP);
-                 id(myDisplay).update();
-           else:
-              - lambda: |-
-                  if ((id(phase) == 0) && (!id(logo).is_running())) {
-                    id(logo).execute();
-                  } else if (id(phase) == 1) {
-                    id(waiting).execute();
-                  } else if (id(phase) == 2) {
-                    id(external_player).execute();
-                  } else if (id(phase) == 3) {
-                    id(listening).execute();
-                  } else if (id(phase) == 4) {
-                    id(answering).execute();
-                  }
+       - lambda: |-
+            id(lightTO) = 0;
+            if (id(mic_muted)) {
+              id(myDisplay).show_page(muteMicP);
+              id(myDisplay).update();
+              return;
+            }
+            if (id(mute) && !id(auto_mute_active)) {
+              id(myDisplay).show_page(muteSpeakerP);
+              id(myDisplay).update();
+              return;
+            }
+            if ((id(phase) == 0) && (!id(logo).is_running())) {
+              id(logo).execute();
+            } else if (id(phase) == 1) {
+              id(waiting).execute();
+            } else if (id(phase) == 2) {
+              id(external_player).execute();
+            } else if (id(phase) == 3) {
+              id(listening).execute();
+            } else if (id(phase) == 4) {
+              id(answering).execute();
+            }
 
   - id: logo
     then:
@@ -881,12 +910,14 @@ script:
        - media_player.volume_set:
             volume: '0'
        - lambda: id(mute) = true;
-       
+       - lambda: id(auto_mute_active) = true;
+
   - id: mute_off
     then:
        - media_player.volume_set:
             volume: !lambda return(id(Vol));
-       - lambda: id(mute) = false;                                
+       - lambda: id(mute) = false;
+       - lambda: id(auto_mute_active) = false;
 
       
       
