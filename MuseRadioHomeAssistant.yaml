@@ -820,10 +820,7 @@ sensor:
         - media_player.volume_set:
                 id: speaker_media_player
                 volume: !lambda return id(Vol);
-        - lambda: |-
-                if (id(myDisplay).is_ready()) {
-                  id(myDisplay).update();
-                }
+        - script.execute: schedule_volume_update
     on_clockwise:
       then:
         - light.turn_on: screen_backlight
@@ -836,10 +833,7 @@ sensor:
         - media_player.volume_set:
                 id: speaker_media_player
                 volume: !lambda return id(Vol);
-        - lambda: |-
-                if (id(myDisplay).is_ready()) {
-                  id(myDisplay).update();
-                }
+        - script.execute: schedule_volume_update
 
   - platform: rotary_encoder
     name: "Dummy"
@@ -959,6 +953,7 @@ binary_sensor:
         - lambda: |-
             id(volume_display_active) = true;
             id(volume_display_timer) = 0;
+        - script.execute: schedule_volume_update
         - script.execute: reset_display
 
   - platform: gpio
@@ -1165,11 +1160,19 @@ script:
            id(my_es8388).write_byte(0x1C, 0x00);
            id(my_es8388).write_byte(0x04, 0x0C);
 
+  - id: schedule_volume_update
+    mode: restart
+    then:
+      - delay: 400ms
+      - lambda: |-
+          if (id(volume_display_active) && id(myDisplay).is_ready()) {
+            id(myDisplay).update();
+          }
 
   - id: reset_display
     mode: restart
-    then:
-       - logger.log: "===> reset_display"
+    then: 
+       - logger.log: "===> reset_display" 
        - lambda: |-
             id(lightTO) = 0;
             if (id(mic_muted)) {
@@ -1280,10 +1283,7 @@ script:
           id(auto_mute_active) = true;
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
-      - lambda: |-
-          if (id(myDisplay).is_ready()) {
-            id(myDisplay).update();
-          }
+      - script.execute: schedule_volume_update
 
   - id: mute_off
     then:
@@ -1298,10 +1298,7 @@ script:
           id(auto_mute_active) = false;
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
-      - lambda: |-
-          if (id(myDisplay).is_ready()) {
-            id(myDisplay).update();
-          }
+      - script.execute: schedule_volume_update
 
 
 
