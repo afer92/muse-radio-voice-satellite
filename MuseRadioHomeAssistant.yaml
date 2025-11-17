@@ -10,7 +10,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.2.1"
+    version: "2025.3.0"
   on_boot:
     - priority: 800
       then:
@@ -432,6 +432,12 @@ font:
       weight: 300
     id: font_response
     size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_battery_small
+    size: 9
 
 color:
   - id: green
@@ -525,7 +531,7 @@ display:
                   auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                   it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                 }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
               }
             };
             draw_volume_bar();
@@ -568,10 +574,57 @@ display:
                   auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                   it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                 }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
               }
             };
+            auto draw_battery_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 34;
+              const int icon_height = 14;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (display_width <= icon_width + cap_width + margin * 2) {
+                return;
+              }
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
+              }
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
+              }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+            };
+ 
             draw_volume_bar();
+            draw_battery_icon();
         - id: waitingBP
           lambda: |-
             it.image(0, 0, id(WIm));
@@ -611,10 +664,84 @@ display:
                   auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                   it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                 }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
               }
             };
+            auto draw_battery_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 34;
+              const int icon_height = 14;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (display_width <= icon_width + cap_width + margin * 2) {
+                return;
+              }
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
+              }
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
+              }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+            };
+
+            
+            auto draw_speaker_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 20;
+              const int icon_height = 20;
+              const int vertical_offset = 2;
+              const int horizontal_offset = 4;
+              int t = 1;
+              if (it.get_width() <= icon_width + margin * 2) {
+                return;
+              }
+              const int x = margin + horizontal_offset;
+              const int y = margin + vertical_offset;
+              const bool is_muted = id(mute) && !id(auto_mute_active);
+              auto symbol_color = is_muted ? id(red) : id(green);
+
+              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
+              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));   
+              t = 2;      
+              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
+              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));                     
+              it.filled_rectangle(x, y+icon_height/4, icon_width, icon_height/2, symbol_color);
+              it.filled_triangle(x, y+icon_height/2, x+icon_width, y, x+icon_width, y+icon_height,symbol_color); 
+              it.line(x+icon_width/2, y+icon_height/4, x+icon_width/2, y+icon_height*3/4, id(black));
+            };            
+            
             draw_volume_bar();
+            draw_speaker_icon();
+            draw_battery_icon();           
         - id: listeningP
           lambda: |-
               it.image(0, 0, id(LIm));
@@ -654,14 +781,61 @@ display:
                     auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                     it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                   }
-                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
                 }
               };
+              auto draw_battery_icon = [&]() {
+                const int margin = 4;
+                const int icon_width = 34;
+                const int icon_height = 14;
+                const int cap_width = 4;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (display_width <= icon_width + cap_width + margin * 2) {
+                  return;
+                }
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int cap_height = icon_height / 2;
+                it.rectangle(x, y, icon_width, icon_height, id(black));
+                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+                const int inner_width = icon_width - 4;
+                const int inner_height = icon_height - 4;
+                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+                if (!id(battery_percent).has_state()) {
+                  return;
+                }
+                float percent = id(battery_percent).state;
+                if (percent < 0.0f) {
+                  percent = 0.0f;
+                }
+                if (percent > 100.0f) {
+                  percent = 100.0f;
+                }
+                auto level_color = id(lime);
+                if (percent < 20.0f) {
+                  level_color = id(red);
+                } else if (percent < 50.0f) {
+                  level_color = id(amber);
+                }
+                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+                if (fill_width > inner_width) {
+                  fill_width = inner_width;
+                } else if (fill_width < 0) {
+                  fill_width = 0;
+                }
+                if (fill_width > 0) {
+                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+                }
+                it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              };
+
               draw_volume_bar();
+              draw_battery_icon();
         - id: answeringP
           lambda: |-
               it.image(0, 0, id(AIm));
-              it.rectangle(20 , 20 , 280 , 30 , Color::BLACK );
+              it.rectangle(20 , 24 , 280 , 30 , Color::BLACK );
               it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
               it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
               it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
@@ -701,10 +875,56 @@ display:
                     auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                     it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                   }
-                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
                 }
               };
+              auto draw_battery_icon = [&]() {
+                const int margin = 4;
+                const int icon_width = 34;
+                const int icon_height = 14;
+                const int cap_width = 4;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (display_width <= icon_width + cap_width + margin * 2) {
+                  return;
+                }
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int cap_height = icon_height / 2;
+                it.rectangle(x, y, icon_width, icon_height, id(black));
+                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+                const int inner_width = icon_width - 4;
+                const int inner_height = icon_height - 4;
+                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+                if (!id(battery_percent).has_state()) {
+                  return;
+                }
+                float percent = id(battery_percent).state;
+                if (percent < 0.0f) {
+                  percent = 0.0f;
+                }
+                if (percent > 100.0f) {
+                  percent = 100.0f;
+                }
+                auto level_color = id(lime);
+                if (percent < 20.0f) {
+                  level_color = id(red);
+                } else if (percent < 50.0f) {
+                  level_color = id(amber);
+                }
+                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+                if (fill_width > inner_width) {
+                  fill_width = inner_width;
+                } else if (fill_width < 0) {
+                  fill_width = 0;
+                } 
+                if (fill_width > 0) {
+                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+                }
+                it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              };            
               draw_volume_bar();
+              draw_battery_icon();
         - id: muteMicP
           lambda: |-
             it.image(0, 0, id(muteMicIm));
@@ -744,53 +964,58 @@ display:
                   auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
                   it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
                 }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
               }
             };
-            draw_volume_bar();
-        - id: muteSpeakerP
-          lambda: |-
-            it.image(0, 0, id(muteSpeakerIm));
-            auto draw_volume_bar = [&]() {
-              if (!id(volume_display_active)) {
-                return;
-              }
-              float display_volume = id(Vol);
-              if (id(mute) || id(auto_mute_active)) {
-                display_volume = 0.0f;
-              }
-              if (display_volume < 0.0f) {
-                display_volume = 0.0f;
-              }
-              if (display_volume > 1.0f) {
-                display_volume = 1.0f;
-              }
-              const int gauge_height = 18;
-              const int margin = 3;
+            auto draw_battery_icon = [&]() {
+              const int margin = 2;
+              const int icon_width = 30;
+              const int icon_height = 10;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
               const int display_width = it.get_width();
-              const int display_height = it.get_height();
-              if (display_width <= margin * 2 || display_height <= gauge_height) {
+              if (display_width <= icon_width + cap_width + margin * 2) {
                 return;
               }
-              const int gauge_y = display_height - gauge_height;
-              const int inner_width = display_width - margin * 2;
-              const int inner_height = gauge_height - margin * 2;
-              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-              if (filled_width > inner_width) {
-                filled_width = inner_width;
-              } else if (filled_width < 0) {
-                filled_width = 0;
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
               }
-              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-              if (inner_height > 0) {
-                if (filled_width > 0) {
-                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(white));
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
               }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
             };
+
             draw_volume_bar();
+            draw_battery_icon();
+
 
 
 # Home Assistant Components
@@ -813,28 +1038,33 @@ sensor:
         - light.turn_on: screen_backlight
         - lambda: |-
                 id(lightTO) = 0;
-                id(Vol) -= 0.02;
+                id(Vol) -= 0.05;
                 if(id(Vol) < 0) id(Vol) = 0;
                 id(volume_display_active) = true;
                 id(volume_display_timer) = 0;
+                id(mute) = false;
         - media_player.volume_set:
                 id: speaker_media_player
                 volume: !lambda return id(Vol);
+        - delay: 400ms         
         - script.execute: schedule_volume_update
+        - script.execute: reset_display        
     on_clockwise:
       then:
         - light.turn_on: screen_backlight
         - lambda: |-
                 id(lightTO) = 0;
-                id(Vol) += 0.02;
+                id(Vol) += 0.05;
                 if(id(Vol) > 1) id(Vol) = 1;
                 id(volume_display_active) = true;
                 id(volume_display_timer) = 0;
+                id(mute) = false;
         - media_player.volume_set:
                 id: speaker_media_player
                 volume: !lambda return id(Vol);
+        - delay: 400ms        
         - script.execute: schedule_volume_update
-
+        - script.execute: reset_display
   - platform: rotary_encoder
     name: "Dummy"
     id: function_encoder
@@ -903,7 +1133,71 @@ sensor:
           - binary_sensor.template.publish:
               id: btn_2
               state: ON
-
+  - platform: adc
+    pin: GPIO13
+    name: Battery voltage
+    device_class: voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: 15s
+    attenuation: auto
+    filters:
+      - multiply: 2
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          # Map measured full charge to real value to compensate divider/ADC bias
+          - 4.58 -> 4.20
+      - exponential_moving_average:
+             alpha: 0.2
+             send_every: 2
+      - delta: 0.002
+    on_value:
+        then:
+          - sensor.template.publish:
+              id: battery_percent
+              state: !lambda "return x ;"
+          - lambda: |-
+              if (id(myDisplay).is_ready()) {
+                id(myDisplay).update();
+              }
+  - platform: template
+    name: Battery
+    id: battery_percent
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: 15s
+    filters:
+         - calibrate_polynomial:
+              degree: 3
+              datapoints:
+                  - 4.20 -> 100.0
+                  - 4.13 -> 97.1
+                  - 4.10 -> 94.2
+                  - 4.07 -> 88.4
+                  - 4.05 -> 82.7
+                  - 4.04 -> 76.9
+                  - 4.04 -> 71.1
+                  - 4.01 -> 65.3
+                  - 3.99 -> 59.5
+                  - 3.95 -> 53.8
+                  - 3.93 -> 48.0
+                  - 3.91 -> 42.2
+                  - 3.88 -> 36.4
+                  - 3.86 -> 30.6
+                  - 3.84 -> 24.9
+                  - 3.82 -> 19.1
+                  - 3.76 -> 13.3
+                  - 3.73 -> 10.4
+                  - 3.70 -> 7.5
+                  - 3.64 -> 4.6
+                  - 3.50 -> 1.7
+                  - 3.00 -> 0.0
+         - lambda: return clamp(x, 0.0f, 100.0f);   
 
 
 binary_sensor:
@@ -1180,11 +1474,7 @@ script:
               id(myDisplay).update();
               return;
             }
-            if (id(mute) && !id(auto_mute_active)) {
-              id(myDisplay).show_page(muteSpeakerP);
-              id(myDisplay).update();
-              return;
-            }
+
             if ((id(phase) == 0) && (!id(logo).is_running())) {
               id(logo).execute();
             } else if (id(phase) == 1) {
@@ -1299,7 +1589,10 @@ script:
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
       - script.execute: schedule_volume_update
-
-
-
-
+      
+     
+      
+      
+      
+      
+      
