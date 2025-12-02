@@ -10,7 +10,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.0"
+    version: "2025.3.1"
   on_boot:
     - priority: 800
       then:
@@ -29,6 +29,7 @@ esphome:
               - light.turn_on: screen_backlight
             else:
               - logger.log: "Display not ready during boot splash"
+            
     - priority: -100
       then:
         - output.turn_off: dac_mute
@@ -43,6 +44,7 @@ esphome:
                 volume: !lambda return id(Vol);
         - script.execute: reset_display
 #      - lambda: id(my_es8388).set_volume(0.0);
+
         - micro_wake_word.start:
 
 
@@ -56,7 +58,9 @@ esp32:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
 
-
+preferences:
+  flash_write_interval: 5s
+  
 psram:
   mode: octal
   speed: 80MHz
@@ -73,7 +77,7 @@ api:
 #    - script.execute: reset_display
 
 logger:
-  level: INFO
+  level: DEBUG
   logs:
     sensor: WARN
 
@@ -105,6 +109,42 @@ captive_portal:
 
 improv_serial:
 
+remote_receiver:
+  id: ir_receiver
+  pin:
+    number: GPIO47
+    inverted: true
+  dump: nec
+  on_nec:
+    then:
+      - if:
+          condition:
+            lambda: 'return x.command == 0xBF40;'
+          then:
+            - logger.log: "IR volume up"
+            - script.execute:
+                id: adjust_volume
+                delta: 0.05
+      - if:
+          condition:
+            lambda: 'return x.command == 0xB748;'
+          then:
+            - logger.log: "IR volume down"
+            - script.execute:
+                id: adjust_volume
+                delta: -0.05
+      - if:
+          condition:
+            lambda: 'return((x.command == 0xFE01) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR mute"
+            - script.execute: mute_unmute
+      - if:
+          condition:
+            lambda: 'return((x.command == 0xF609) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR ret"
+            - script.execute: go_assist
 es8388:
 #  id: my_es8388
 
@@ -321,7 +361,7 @@ light:
     output: screen_backlight_pin
     id: screen_backlight
     name: Screen Backlight
-    restore_mode: ALWAYS_ON
+
 
 globals:
   - id: lightTO
@@ -330,6 +370,7 @@ globals:
   - id: Vol
     type: float
     initial_value: '0.6'
+    restore_value: true
   - id: phase
     type: int
     initial_value: '0'
@@ -380,13 +421,15 @@ interval:
                       }
                 else:
                   - lambda: id(volume_display_timer)++;
+
       - if:
           condition:
-              lambda: 'return(id(phase) == 0);'
+            and:
+              - lambda: 'return id(phase) == 0;'
+              - not:
+                  light.is_on: screen_backlight
           then:
-             - light.turn_on: screen_backlight
-
-
+            - light.turn_on: screen_backlight
 
 
 image:
@@ -1035,36 +1078,14 @@ sensor:
         pullup: true
     on_anticlockwise:
       then:
-        - light.turn_on: screen_backlight
-        - lambda: |-
-                id(lightTO) = 0;
-                id(Vol) -= 0.05;
-                if(id(Vol) < 0) id(Vol) = 0;
-                id(volume_display_active) = true;
-                id(volume_display_timer) = 0;
-                id(mute) = false;
-        - media_player.volume_set:
-                id: speaker_media_player
-                volume: !lambda return id(Vol);
-        - delay: 400ms         
-        - script.execute: schedule_volume_update
-        - script.execute: reset_display        
+        - script.execute:
+            id: adjust_volume
+            delta: -0.05
     on_clockwise:
       then:
-        - light.turn_on: screen_backlight
-        - lambda: |-
-                id(lightTO) = 0;
-                id(Vol) += 0.05;
-                if(id(Vol) > 1) id(Vol) = 1;
-                id(volume_display_active) = true;
-                id(volume_display_timer) = 0;
-                id(mute) = false;
-        - media_player.volume_set:
-                id: speaker_media_player
-                volume: !lambda return id(Vol);
-        - delay: 400ms        
-        - script.execute: schedule_volume_update
-        - script.execute: reset_display
+        - script.execute:
+            id: adjust_volume
+            delta: 0.05
   - platform: rotary_encoder
     name: "Dummy"
     id: function_encoder
@@ -1226,29 +1247,7 @@ binary_sensor:
 #    disabled_by_default: true
     on_press:
       then:
-        - light.turn_on: screen_backlight
-        - lambda: |-
-            id(lightTO) = 0;
-        - if:
-            condition:
-              lambda: 'return id(mute);'
-            then:
-              - logger.log: "unmute!"
-              - media_player.volume_set:
-                  volume: !lambda 'return id(Vol);'
-              - lambda: id(mute) = false;
-              - lambda: id(auto_mute_active) = false;
-            else:
-              - logger.log: "mute!"
-              - media_player.volume_set:
-                  volume: '0'
-              - lambda: id(mute) = true;
-              - lambda: id(auto_mute_active) = false;
-        - lambda: |-
-            id(volume_display_active) = true;
-            id(volume_display_timer) = 0;
-        - script.execute: schedule_volume_update
-        - script.execute: reset_display
+        - script.execute: mute_unmute
 
   - platform: gpio
     pin:
@@ -1260,68 +1259,8 @@ binary_sensor:
     id: click_sta
     name: Assist
     on_click:
-      then:
-        - light.turn_on: screen_backlight
-        - lambda: |-
-            id(lightTO) = 0;
-        - if:
-            condition:
-              lambda: 'return(id(phase) == 3 || id(phase) == 4);'
-            then:
-              - if:
-                  condition:
-                    voice_assistant.is_running:
-                  then:
-                    - voice_assistant.stop:
-                    - wait_until:
-                        not:
-                          voice_assistant.is_running:
-              - if:
-                  condition:
-                    media_player.is_announcing:
-                  then:
-                    - media_player.stop:
-                        id: speaker_media_player
-                        announcement: true
-              - if:
-                  condition:
-                    media_player.is_playing:
-                  then:
-                    - media_player.stop:
-                        id: speaker_media_player
-              - micro_wake_word.start:
-              - lambda: |-
-                  id(mute) = false;
-                  id(auto_mute_active) = false;
-                  id(phase) = 1;
-              - script.execute: reset_display
-            else:
-              - if:
-                  condition:
-                    media_player.is_announcing:
-                  then:
-                    - media_player.stop:
-                        id: speaker_media_player
-                        announcement: true
-              - if:
-                  condition:
-                    media_player.is_playing:
-                  then:
-                    - media_player.stop:
-                        id: speaker_media_player
-              - if:
-                  condition:
-                    voice_assistant.is_running:
-                  then:
-                    - voice_assistant.stop:
-                    - wait_until:
-                        not:
-                          voice_assistant.is_running:
-              - micro_wake_word.stop:
-              - lambda: |-
-                  id(phase) = 3;
-              - script.execute: reset_display
-              - voice_assistant.start:
+       then:
+          script.execute: go_assist
 
 
   - platform: template
@@ -1350,7 +1289,86 @@ binary_sensor:
     id: btn_3
     on_press:
        - logger.log: "Radio 3 button pressed"
-
+  - platform: remote_receiver
+    name: "IR OK"
+    id: ir_ok
+    nec:
+      address: 0xFE01
+      command: 0xF906
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR OK received"
+  - platform: remote_receiver
+    name: "IR UP"
+    id: ir_up
+    nec:
+      address: 0xFE01
+      command: 0xFA05
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR UP received"
+  - platform: remote_receiver
+    name: "IR DOWN"
+    id: ir_down
+    nec:
+      address: 0xFE01
+      command: 0xFB04
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR DOWN received"
+  - platform: remote_receiver
+    name: "IR RIGHT"
+    id: ir_right
+    nec:
+      address: 0xFE01
+      command: 0xF50A
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR RIGHT received"
+  - platform: remote_receiver
+    name: "IR LEFT"
+    id: ir_left
+    nec:
+      address: 0xFE01
+      command: 0xFD02
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR LEFT received"
+  - platform: remote_receiver
+    name: "IR LIKE"
+    id: ir_like
+    nec:
+      address: 0xFE01
+      command: 0xF40B
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR LIKE received"
+  - platform: remote_receiver
+    name: "IR HOME"
+    id: ir_home
+    nec:
+      address: 0xFE01
+      command: 0xFC03
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR HOME received"
+  - platform: remote_receiver
+    name: "IR BIN"
+    id: ir_bin
+    nec:
+      address: 0xFE01
+      command: 0xBB44
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR BIN received"                  
 switch:
   - platform: template
     id: mic_mute_switch
@@ -1436,6 +1454,96 @@ text_sensor:
 
 script:
 
+  - id: go_assist
+    then:
+        - light.turn_on: screen_backlight
+        - lambda: |-
+            id(lightTO) = 0;
+        - if:
+            condition:
+              lambda: 'return(id(phase) == 3 || id(phase) == 4);'
+            then:
+              - if:
+                  condition:
+                    voice_assistant.is_running:
+                  then:
+                    - voice_assistant.stop:
+                    - wait_until:
+                        not:
+                          voice_assistant.is_running:
+              - if:
+                  condition:
+                    media_player.is_announcing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+                        announcement: true
+              - if:
+                  condition:
+                    media_player.is_playing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+              - micro_wake_word.start:
+              - lambda: |-
+                  id(mute) = false;
+                  id(auto_mute_active) = false;
+                  id(phase) = 1;
+              - script.execute: reset_display
+            else:
+              - if:
+                  condition:
+                    media_player.is_announcing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+                        announcement: true
+              - if:
+                  condition:
+                    media_player.is_playing:
+                  then:
+                    - media_player.stop:
+                        id: speaker_media_player
+              - if:
+                  condition:
+                    voice_assistant.is_running:
+                  then:
+                    - voice_assistant.stop:
+                    - wait_until:
+                        not:
+                          voice_assistant.is_running:
+              - micro_wake_word.stop:
+              - lambda: |-
+                  id(phase) = 3;
+              - script.execute: reset_display
+              - voice_assistant.start:
+
+  - id: mute_unmute
+    then:
+        - light.turn_on: screen_backlight
+        - lambda: |-
+            id(lightTO) = 0;
+        - if:
+            condition:
+              lambda: 'return id(mute);'
+            then:
+              - logger.log: "unmute!"
+              - media_player.volume_set:
+                  volume: !lambda 'return id(Vol);'
+              - lambda: id(mute) = false;
+              - lambda: id(auto_mute_active) = false;
+            else:
+              - logger.log: "mute!"
+              - media_player.volume_set:
+                  volume: '0'
+              - lambda: id(mute) = true;
+              - lambda: id(auto_mute_active) = false;
+        - lambda: |-
+            id(volume_display_active) = true;
+            id(volume_display_timer) = 0;
+        - script.execute: schedule_volume_update
+        - script.execute: reset_display    
+
   - id: jack_detect_high
     then:
        - logger.log: "Jack detect high -> route to speaker"
@@ -1453,6 +1561,27 @@ script:
            id(my_es8388).write_byte(0x1D, 0x00);
            id(my_es8388).write_byte(0x1C, 0x00);
            id(my_es8388).write_byte(0x04, 0x0C);
+
+  - id: adjust_volume
+    mode: parallel
+    parameters:
+      delta: float
+    then:
+      - light.turn_on: screen_backlight
+      - lambda: |-
+          id(lightTO) = 0;
+          id(Vol) += delta;
+          if (id(Vol) < 0) id(Vol) = 0;
+          if (id(Vol) > 1) id(Vol) = 1;
+          id(volume_display_active) = true;
+          id(volume_display_timer) = 0;
+          id(mute) = false;
+      - media_player.volume_set:
+          id: speaker_media_player
+          volume: !lambda return id(Vol);
+      - delay: 400ms
+      - script.execute: schedule_volume_update
+      - script.execute: reset_display
 
   - id: schedule_volume_update
     mode: restart
