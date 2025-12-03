@@ -8,7 +8,7 @@
          "md5": "8ed7098d019c0b22850a61d535374baf",  
          "path": "https://raw.githubusercontent.com/RASPIAUDIO/muse-radio-voice-satellite/main/update_firmware.bin",
          "offset": 0,
-         "summary": "Latest firmware"
+         "summary": "Latest firmware: remote control management / volume retention after shutdown"
          }
     }
     ]     
