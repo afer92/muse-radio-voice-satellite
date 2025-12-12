@@ -1,6 +1,9 @@
 substitutions:
   name: raspiaudio-radio
   friendly_name: Raspiaudio Radio
+  #image_path: "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/"
+  image_path: "http://xx.xx.xx.xx/RASPIAUDIO/muse-radio-voice-satellite/main/images/"
+
 
 
 esphome:
@@ -29,7 +32,6 @@ esphome:
               - light.turn_on: screen_backlight
             else:
               - logger.log: "Display not ready during boot splash"
-            
     - priority: -100
       then:
         - output.turn_off: dac_mute
@@ -44,7 +46,6 @@ esphome:
                 volume: !lambda return id(Vol);
         - script.execute: reset_display
 #      - lambda: id(my_es8388).set_volume(0.0);
-
         - micro_wake_word.start:
 
 
@@ -60,7 +61,7 @@ esp32:
 
 preferences:
   flash_write_interval: 5s
-  
+
 psram:
   mode: octal
   speed: 80MHz
@@ -77,11 +78,20 @@ api:
 #    - script.execute: reset_display
 
 logger:
-  level: DEBUG
+  level: INFO
   logs:
     sensor: WARN
 
+web_server:
+  include_internal: True
+  version: 3
+
 wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
 #  ssid: xxxxx
 #  password: yyyyy
 #  power_save_mode: none
@@ -124,7 +134,7 @@ remote_receiver:
             - logger.log: "IR volume up"
             - script.execute:
                 id: adjust_volume
-                delta: 0.05
+                delta: 0.02
       - if:
           condition:
             lambda: 'return x.command == 0xB748;'
@@ -132,7 +142,7 @@ remote_receiver:
             - logger.log: "IR volume down"
             - script.execute:
                 id: adjust_volume
-                delta: -0.05
+                delta: -0.02
       - if:
           condition:
             lambda: 'return((x.command == 0xFE01) && (x.address == 0xFE01));'
@@ -145,6 +155,13 @@ remote_receiver:
           then:
             - logger.log: "IR ret"
             - script.execute: go_assist
+      - if:
+          condition:
+            lambda: 'return((x.command == 0xFF00) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR reset"
+            - script.execute: go_reset
+
 es8388:
 #  id: my_es8388
 
@@ -361,7 +378,7 @@ light:
     output: screen_backlight_pin
     id: screen_backlight
     name: Screen Backlight
-
+    #restore_mode: ALWAYS_ON
 
 globals:
   - id: lightTO
@@ -421,7 +438,6 @@ interval:
                       }
                 else:
                   - lambda: id(volume_display_timer)++;
-
       - if:
           condition:
             and:
@@ -433,31 +449,31 @@ interval:
 
 
 image:
-  - file: "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/Raspiaudio.png"
+  - file: "${image_path}Raspiaudio.png"
     id: raspiIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/WFWW.png"
+  - file:  "${image_path}WFWW.png"
     id: WFWWIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/W.png"
+  - file:  "${image_path}W.png"
     id: WIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/LISTEN.png"
+  - file:  "${image_path}LISTEN.png"
     id: LIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/ANSWER.png"
+  - file:  "${image_path}ANSWER.png"
     id: AIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute_mic.png"
+  - file:  "${image_path}mute_mic.png"
     id: muteMicIm
     resize: 320x240
     type: RGB
-  - file:  "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/mute_speaker.png"
+  - file:  "${image_path}mute_speaker.png"
     id: muteSpeakerIm
     resize: 320x240
     type: RGB
@@ -1368,7 +1384,18 @@ binary_sensor:
     filters:
       - delayed_off: 100ms
     on_press:
-      - logger.log: "IR BIN received"                  
+      - logger.log: "IR BIN received"  
+  - platform: remote_receiver
+    name: "IR RESET"
+    id: ir_reset
+    nec:
+      address: 0xFE01
+      command: 0xFE00
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR RESET received"   
+
 switch:
   - platform: template
     id: mic_mute_switch
@@ -1453,6 +1480,10 @@ text_sensor:
 # Scripts
 
 script:
+
+  - id: go_reset
+    then:
+      - lambda: id(bt_restart).press();
 
   - id: go_assist
     then:
@@ -1720,7 +1751,11 @@ script:
       - script.execute: schedule_volume_update
       
      
-      
+
+button:
+  - platform: restart
+    id: bt_restart
+    name: bt_restart 
       
       
       
