@@ -13,7 +13,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.voice-assistant
-    version: "2025.3.1"
+    version: "2025.3.4"
   on_boot:
     - priority: 800
       then:
@@ -32,6 +32,7 @@ esphome:
               - light.turn_on: screen_backlight
             else:
               - logger.log: "Display not ready during boot splash"
+            
     - priority: -100
       then:
         - output.turn_off: dac_mute
@@ -46,6 +47,7 @@ esphome:
                 volume: !lambda return id(Vol);
         - script.execute: reset_display
 #      - lambda: id(my_es8388).set_volume(0.0);
+
         - micro_wake_word.start:
 
 
@@ -61,7 +63,7 @@ esp32:
 
 preferences:
   flash_write_interval: 5s
-
+  
 psram:
   mode: octal
   speed: 80MHz
@@ -71,6 +73,14 @@ external_components:
     components: [es8388]
     refresh: 0s
 
+packages:   # as a list
+  #- !include common/base.yaml
+  #- !include common/esp32_rmt_led_strip.yaml
+  - !include common/base_sensor.yaml
+  - !include common/base_text_sensor.yaml
+  #- !include common/wifi.yaml
+  #- !include common/ble_tracker.yaml
+
 api:
 # on_client_connected:
 #    - script.execute: reset_display
@@ -78,7 +88,7 @@ api:
 #    - script.execute: reset_display
 
 logger:
-  level: INFO
+  level: DEBUG
   logs:
     sensor: WARN
 
@@ -134,7 +144,7 @@ remote_receiver:
             - logger.log: "IR volume up"
             - script.execute:
                 id: adjust_volume
-                delta: 0.02
+                delta: 0.05
       - if:
           condition:
             lambda: 'return x.command == 0xB748;'
@@ -142,7 +152,7 @@ remote_receiver:
             - logger.log: "IR volume down"
             - script.execute:
                 id: adjust_volume
-                delta: -0.02
+                delta: -0.05
       - if:
           condition:
             lambda: 'return((x.command == 0xFE01) && (x.address == 0xFE01));'
@@ -155,13 +165,6 @@ remote_receiver:
           then:
             - logger.log: "IR ret"
             - script.execute: go_assist
-      - if:
-          condition:
-            lambda: 'return((x.command == 0xFF00) && (x.address == 0xFE01));'
-          then:
-            - logger.log: "IR reset"
-            - script.execute: go_reset
-
 es8388:
 #  id: my_es8388
 
@@ -378,7 +381,7 @@ light:
     output: screen_backlight_pin
     id: screen_backlight
     name: Screen Backlight
-    #restore_mode: ALWAYS_ON
+
 
 globals:
   - id: lightTO
@@ -438,6 +441,7 @@ interval:
                       }
                 else:
                   - lambda: id(volume_display_timer)++;
+
       - if:
           condition:
             and:
@@ -497,6 +501,12 @@ font:
       weight: 300
     id: font_battery_small
     size: 9
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_wifi_label
+    size: 9
 
 color:
   - id: green
@@ -537,6 +547,9 @@ color:
     hex: '41220D'
   - id: bg_grey
     hex: '4F4F4F'
+  - id: light_green
+    hex: 'AAD1AA' 
+       
 
 display:
   - id: myDisplay
@@ -594,6 +607,13 @@ display:
               }
             };
             draw_volume_bar();
+        - id: wifiWaitingP
+          lambda: |-
+            const int display_width = it.get_width();
+            const int display_height = it.get_height();
+            it.filled_rectangle(0, 0, display_width, display_height, id(bg_blue));
+            it.printf(display_width / 2, display_height / 2 - 12, id(font_request), id(white), TextAlign::CENTER, "Waiting WiFi...");
+            it.printf(display_width / 2, display_height / 2 + 12, id(font_request), id(white), TextAlign::CENTER, "Connecting to network");
         - id: waitingP
           lambda: |-
             it.image(0, 0, id(WFWWIm));
@@ -643,6 +663,17 @@ display:
               const int cap_width = 4;
               const int vertical_offset = 2;
               const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
               if (display_width <= icon_width + cap_width + margin * 2) {
                 return;
               }
@@ -657,6 +688,7 @@ display:
               if (!id(battery_percent).has_state()) {
                 return;
               }
+              const bool is_charging = id(usb_power_detect).state;
               float percent = id(battery_percent).state;
               if (percent < 0.0f) {
                 percent = 0.0f;
@@ -679,11 +711,82 @@ display:
               if (fill_width > 0) {
                 it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
               }
-              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2 + 1;
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
             };
- 
+
+            auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                if (rssi > -60.0f) {
+                  level_color = id(lime);
+                  bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
+            };
+
             draw_volume_bar();
             draw_battery_icon();
+            draw_wifi_icon();
         - id: waitingBP
           lambda: |-
             it.image(0, 0, id(WIm));
@@ -733,6 +836,17 @@ display:
               const int cap_width = 4;
               const int vertical_offset = 2;
               const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                            
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
               if (display_width <= icon_width + cap_width + margin * 2) {
                 return;
               }
@@ -747,6 +861,7 @@ display:
               if (!id(battery_percent).has_state()) {
                 return;
               }
+              const bool is_charging = id(usb_power_detect).state;
               float percent = id(battery_percent).state;
               if (percent < 0.0f) {
                 percent = 0.0f;
@@ -769,7 +884,77 @@ display:
               if (fill_width > 0) {
                 it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
               }
-              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2 + 1;           
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
+            };
+
+            auto draw_wifi_icon = [&]() {
+              const int margin = 4;
+              const int battery_icon_width = 34;
+              const int cap_width = 4;
+              const int battery_icon_height = 14;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (!id(wifi_signal_dbm).has_state()) {
+                return;
+              }
+              const int x = display_width - battery_icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int box_size = 22;
+              const int half_box = box_size / 2;
+              const int wifi_gap = 10;
+              const int center_x = x - wifi_gap - half_box;
+              float rssi = id(wifi_signal_dbm).state;
+              auto level_color = id(red);
+              int bars = 1;
+                if (rssi > -60.0f) {
+                  level_color = id(lime);
+                  bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
             };
 
             
@@ -800,7 +985,8 @@ display:
             
             draw_volume_bar();
             draw_speaker_icon();
-            draw_battery_icon();           
+            draw_battery_icon();
+            draw_wifi_icon();           
         - id: listeningP
           lambda: |-
               it.image(0, 0, id(LIm));
@@ -850,6 +1036,17 @@ display:
                 const int cap_width = 4;
                 const int vertical_offset = 2;
                 const int display_width = it.get_width();
+                auto draw_charging_indicator = [&](int center_x, int center_y) {
+                  const int x = display_width - icon_width - cap_width - margin;
+                  const int y = margin + vertical_offset;
+                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
+                  const int bolt_width = 24;
+                  const int bolt_height = 8;
+                  const int left = center_x - bolt_width / 2;
+                  const int top = center_y - bolt_height / 2 - 1;                
+                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                };
                 if (display_width <= icon_width + cap_width + margin * 2) {
                   return;
                 }
@@ -864,6 +1061,7 @@ display:
                 if (!id(battery_percent).has_state()) {
                   return;
                 }
+                const bool is_charging = id(usb_power_detect).state;
                 float percent = id(battery_percent).state;
                 if (percent < 0.0f) {
                   percent = 0.0f;
@@ -886,11 +1084,82 @@ display:
                 if (fill_width > 0) {
                   it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
                 }
-                it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                const int center_x = x + icon_width / 2;
+                const int center_y = y + icon_height / 2 + 1;
+                if (is_charging) {
+                  draw_charging_indicator(center_x, center_y);
+                } else {
+                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                }
+              };
+
+              auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                  if (rssi > -60.0f) {
+                    level_color = id(lime);
+                    bars = 3;
+                  } else if (rssi > -75.0f) {
+                    level_color = id(amber);
+                    bars = 2;
+                  }
+                  const int dot_x = center_x;
+                  const int dot_y = y + battery_icon_height - 1;
+                  const float pi = 3.14159265f;
+                  const float start_deg = 200.0f;
+                  const float end_deg = 340.0f;
+                  const float step_deg = 5.0f;
+                auto draw_arc = [&](int radius, int thickness) {
+                  for (int t = 0; t < thickness; t++) {
+                    const int r = radius - t;
+                    bool has_prev = false;
+                    int prev_x = 0;
+                    int prev_y = 0;
+                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                      const float rad = deg * pi / 180.0f;
+                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                      if (has_prev) {
+                        it.line(prev_x, prev_y, px, py, level_color);
+                      }
+                      prev_x = px;
+                      prev_y = py;
+                      has_prev = true;
+                    }
+                  }
+                };
+
+                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+                if (bars >= 1) {
+                  draw_arc(4, 2);
+                }
+                if (bars >= 2) {
+                  draw_arc(7, 2);
+                }
+                if (bars >= 3) {
+                  draw_arc(10, 2);
+                }
               };
 
               draw_volume_bar();
               draw_battery_icon();
+              draw_wifi_icon();
         - id: answeringP
           lambda: |-
               it.image(0, 0, id(AIm));
@@ -944,6 +1213,17 @@ display:
                 const int cap_width = 4;
                 const int vertical_offset = 2;
                 const int display_width = it.get_width();
+                auto draw_charging_indicator = [&](int center_x, int center_y) {
+                  const int x = display_width - icon_width - cap_width - margin;
+                  const int y = margin + vertical_offset;
+                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
+                  const int bolt_width = 24;
+                  const int bolt_height = 8;
+                  const int left = center_x - bolt_width / 2;
+                  const int top = center_y - bolt_height / 2 - 1;                  
+                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                };
                 if (display_width <= icon_width + cap_width + margin * 2) {
                   return;
                 }
@@ -958,6 +1238,7 @@ display:
                 if (!id(battery_percent).has_state()) {
                   return;
                 }
+                const bool is_charging = id(usb_power_detect).state;
                 float percent = id(battery_percent).state;
                 if (percent < 0.0f) {
                   percent = 0.0f;
@@ -980,10 +1261,80 @@ display:
                 if (fill_width > 0) {
                   it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
                 }
-                it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                const int center_x = x + icon_width / 2;
+                const int center_y = y + icon_height / 2 + 1;
+                if (is_charging) {
+                  draw_charging_indicator(center_x, center_y);
+                } else {
+                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                }
+              };            
+              auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                  if (rssi > -60.0f) {
+                    level_color = id(lime);
+                    bars = 3;
+                  } else if (rssi > -75.0f) {
+                    level_color = id(amber);
+                    bars = 2;
+                  }
+                  const int dot_x = center_x;
+                  const int dot_y = y + battery_icon_height - 1;
+                  const float pi = 3.14159265f;
+                  const float start_deg = 200.0f;
+                  const float end_deg = 340.0f;
+                  const float step_deg = 5.0f;
+                auto draw_arc = [&](int radius, int thickness) {
+                  for (int t = 0; t < thickness; t++) {
+                    const int r = radius - t;
+                    bool has_prev = false;
+                    int prev_x = 0;
+                    int prev_y = 0;
+                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                      const float rad = deg * pi / 180.0f;
+                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                      if (has_prev) {
+                        it.line(prev_x, prev_y, px, py, level_color);
+                      }
+                      prev_x = px;
+                      prev_y = py;
+                      has_prev = true;
+                    }
+                  }
+                };
+
+                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+                if (bars >= 1) {
+                  draw_arc(4, 2);
+                }
+                if (bars >= 2) {
+                  draw_arc(7, 2);
+                }
+                if (bars >= 3) {
+                  draw_arc(10, 2);
+                }
               };            
               draw_volume_bar();
               draw_battery_icon();
+              draw_wifi_icon();
         - id: muteMicP
           lambda: |-
             it.image(0, 0, id(muteMicIm));
@@ -1033,6 +1384,17 @@ display:
               const int cap_width = 4;
               const int vertical_offset = 2;
               const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
               if (display_width <= icon_width + cap_width + margin * 2) {
                 return;
               }
@@ -1047,6 +1409,7 @@ display:
               if (!id(battery_percent).has_state()) {
                 return;
               }
+              const bool is_charging = id(usb_power_detect).state;
               float percent = id(battery_percent).state;
               if (percent < 0.0f) {
                 percent = 0.0f;
@@ -1069,11 +1432,81 @@ display:
               if (fill_width > 0) {
                 it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
               }
-              it.printf(x + icon_width / 2, y + icon_height / 2 + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2;
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
             };
 
             draw_volume_bar();
             draw_battery_icon();
+            auto draw_wifi_icon = [&]() {
+              const int margin = 2;
+              const int battery_icon_width = 30;
+              const int cap_width = 4;
+              const int battery_icon_height = 10;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (!id(wifi_signal_dbm).has_state()) {
+                return;
+              }
+              const int x = display_width - battery_icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int box_size = 22;
+              const int half_box = box_size / 2;
+              const int wifi_gap = 10;
+              const int center_x = x - wifi_gap - half_box;
+              float rssi = id(wifi_signal_dbm).state;
+              auto level_color = id(red);
+              int bars = 1;
+              if (rssi > -60.0f) {
+                level_color = id(lime);
+                bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
+            };
+            draw_wifi_icon();
 
 
 
@@ -1094,11 +1527,13 @@ sensor:
         pullup: true
     on_anticlockwise:
       then:
+#        - delay: 400ms
         - script.execute:
             id: adjust_volume
             delta: -0.05
     on_clockwise:
       then:
+#        - delay: 400ms
         - script.execute:
             id: adjust_volume
             delta: 0.05
@@ -1209,35 +1644,67 @@ sensor:
     entity_category: diagnostic
     update_interval: 15s
     filters:
-         - calibrate_polynomial:
-              degree: 3
-              datapoints:
-                  - 4.20 -> 100.0
-                  - 4.13 -> 97.1
-                  - 4.10 -> 94.2
-                  - 4.07 -> 88.4
-                  - 4.05 -> 82.7
-                  - 4.04 -> 76.9
-                  - 4.04 -> 71.1
-                  - 4.01 -> 65.3
-                  - 3.99 -> 59.5
-                  - 3.95 -> 53.8
-                  - 3.93 -> 48.0
-                  - 3.91 -> 42.2
-                  - 3.88 -> 36.4
-                  - 3.86 -> 30.6
-                  - 3.84 -> 24.9
-                  - 3.82 -> 19.1
-                  - 3.76 -> 13.3
-                  - 3.73 -> 10.4
-                  - 3.70 -> 7.5
-                  - 3.64 -> 4.6
-                  - 3.50 -> 1.7
-                  - 3.00 -> 0.0
-         - lambda: return clamp(x, 0.0f, 100.0f);   
+      - calibrate_polynomial:
+           degree: 3
+           datapoints:
+               - 4.20 -> 100.0
+               - 4.13 -> 97.1
+               - 4.10 -> 94.2
+               - 4.07 -> 88.4
+               - 4.05 -> 82.7
+               - 4.04 -> 76.9
+               - 4.04 -> 71.1
+               - 4.01 -> 65.3
+               - 3.99 -> 59.5
+               - 3.95 -> 53.8
+               - 3.93 -> 48.0
+               - 3.91 -> 42.2
+               - 3.88 -> 36.4
+               - 3.86 -> 30.6
+               - 3.84 -> 24.9
+               - 3.82 -> 19.1
+               - 3.76 -> 13.3
+               - 3.73 -> 10.4
+               - 3.70 -> 7.5
+               - 3.64 -> 4.6
+               - 3.50 -> 1.7
+               - 3.00 -> 0.0
+      - lambda: return clamp(x, 0.0f, 100.0f);   
+  - platform: wifi_signal
+    name: WiFi Signal
+    id: wifi_signal_dbm
+    update_interval: 15s
+    on_value:
+      then:
+        - lambda: |-
+            if (id(myDisplay).is_ready()) {
+              id(myDisplay).update();
+            }
 
 
 binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO21
+      mode:
+        input: true
+#        pullup: true
+    id: usb_power_detect
+    name: USB Power
+    device_class: power
+    entity_category: diagnostic
+    on_press:
+      - logger.log: "USB power detected"
+      - lambda: |-
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).update();
+          }
+    on_release:
+      - logger.log: "USB power removed"
+      - lambda: |-
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).update();
+          }
   - platform: gpio
     pin:
       number: GPIO10
@@ -1313,7 +1780,7 @@ binary_sensor:
       command: 0xF906
     filters:
       - delayed_off: 100ms
-    on_press:
+    on_click:
       - logger.log: "IR OK received"
   - platform: remote_receiver
     name: "IR UP"
@@ -1394,7 +1861,7 @@ binary_sensor:
     filters:
       - delayed_off: 100ms
     on_press:
-      - logger.log: "IR RESET received"   
+      - logger.log: "IR RESET received"                    
 
 switch:
   - platform: template
@@ -1594,37 +2061,60 @@ script:
            id(my_es8388).write_byte(0x04, 0x0C);
 
   - id: adjust_volume
-    mode: parallel
+#    mode: parallel
     parameters:
       delta: float
     then:
       - light.turn_on: screen_backlight
       - lambda: |-
-          id(lightTO) = 0;
-          id(Vol) += delta;
+          id(lightTO) = 0;          
+          float scale = 1.0f;
+          
+          if(id(Vol) < 0.03f) scale = 0.05f;
+          else if(id(Vol) < 0.05f) scale = 0.40f;
+          else if(id(Vol) < 0.3f) scale = 0.50f;
+          else if(id(Vol) < 0.5f) scale = 0.60f;
+
+          id(Vol) += delta * scale;
           if (id(Vol) < 0) id(Vol) = 0;
           if (id(Vol) > 1) id(Vol) = 1;
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
           id(mute) = false;
+          int v = id(Vol) * 100;
+          if(id(Vol) < 0.1f)
+          {
+             id(my_es8388).write_byte(46, 23 + v);
+             id(my_es8388).write_byte(47, 23 + v);          
+             id(my_es8388).write_byte(48, 23 + v);          
+             id(my_es8388).write_byte(49, 23 + v);          
+          }
+          else
+          {
+             id(my_es8388).write_byte(46, 33);
+             id(my_es8388).write_byte(47, 33);          
+             id(my_es8388).write_byte(48, 33);          
+             id(my_es8388).write_byte(49, 33);        
+           }               
+          
       - media_player.volume_set:
           id: speaker_media_player
           volume: !lambda return id(Vol);
-      - delay: 400ms
+      - delay: 200ms
       - script.execute: schedule_volume_update
       - script.execute: reset_display
 
   - id: schedule_volume_update
-    mode: restart
+#    mode: restart
     then:
-      - delay: 400ms
+#      - delay: 400ms
       - lambda: |-
           if (id(volume_display_active) && id(myDisplay).is_ready()) {
             id(myDisplay).update();
           }
 
   - id: reset_display
-    mode: restart
+#    mode: restart
     then: 
        - logger.log: "===> reset_display" 
        - lambda: |-
@@ -1659,7 +2149,26 @@ script:
            id(lightTO) = 0;
        - light.turn_on: screen_backlight
        - delay: 8sec
-       - lambda: id(phase) = 1;
+       - script.execute: wait_for_wifi_ready
+
+  - id: wait_for_wifi_ready
+    mode: restart
+    then:
+       - logger.log: "Waiting for WiFi before entering waiting state"
+       - while:
+           condition:
+             not:
+               wifi.connected:
+           then:
+             - lambda: |-
+                 id(myDisplay).show_page(wifiWaitingP);
+                 id(myDisplay).update();
+                 id(lightTO) = 0;
+             - light.turn_on: screen_backlight
+             - delay: 1s
+       - logger.log: "WiFi connected, moving to waiting state"
+       - lambda: |-
+           id(phase) = 1;
        - script.execute: reset_display
 
   - id: waiting
@@ -1749,14 +2258,11 @@ script:
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
       - script.execute: schedule_volume_update
+
       
-     
 
 button:
   - platform: restart
     id: bt_restart
     name: bt_restart 
-      
-      
-      
       
