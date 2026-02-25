@@ -1,0 +1,969 @@
+# display.yaml
+
+display:
+  - id: myDisplay
+    platform: ili9xxx
+    spi_id: spi_bus0
+    model: ST7789V
+    cs_pin: GPIO40
+    dc_pin: GPIO39
+    reset_pin: GPIO9
+    invert_colors: true
+    rotation: 90
+    update_interval: never
+    auto_clear_enabled: false
+    pages:
+        - id: logoP
+          lambda: |-
+            it.image(0, 0, id(raspiIm));
+            auto draw_volume_bar = [&]() {
+              if (!id(volume_display_active)) {
+                return;
+              }
+              float display_volume = id(Vol);
+              if (id(mute) || id(auto_mute_active)) {
+                display_volume = 0.0f;
+              }
+              if (display_volume < 0.0f) {
+                display_volume = 0.0f;
+              }
+              if (display_volume > 1.0f) {
+                display_volume = 1.0f;
+              }
+              const int gauge_height = 18;
+              const int margin = 3;
+              const int display_width = it.get_width();
+              const int display_height = it.get_height();
+              if (display_width <= margin * 2 || display_height <= gauge_height) {
+                return;
+              }
+              const int gauge_y = display_height - gauge_height;
+              const int inner_width = display_width - margin * 2;
+              const int inner_height = gauge_height - margin * 2;
+              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+              if (filled_width > inner_width) {
+                filled_width = inner_width;
+              } else if (filled_width < 0) {
+                filled_width = 0;
+              }
+              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+              if (inner_height > 0) {
+                if (filled_width > 0) {
+                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                }
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+              }
+            };
+            draw_volume_bar();
+        - id: wifiWaitingP
+          lambda: |-
+            const int display_width = it.get_width();
+            const int display_height = it.get_height();
+            it.filled_rectangle(0, 0, display_width, display_height, id(bg_blue));
+            it.printf(display_width / 2, display_height / 2 - 12, id(font_request), id(white), TextAlign::CENTER, "Waiting WiFi...");
+            it.printf(display_width / 2, display_height / 2 + 12, id(font_request), id(white), TextAlign::CENTER, "Connecting to network");
+        - id: waitingP # wait word
+          lambda: |-
+            it.image(0, 0, id(WFWWIm));
+            auto draw_volume_bar = [&]() {
+              if (!id(volume_display_active)) {
+                return;
+              }
+              float display_volume = id(Vol);
+              if (id(mute) || id(auto_mute_active)) {
+                display_volume = 0.0f;
+              }
+              if (display_volume < 0.0f) {
+                display_volume = 0.0f;
+              }
+              if (display_volume > 1.0f) {
+                display_volume = 1.0f;
+              }
+              const int gauge_height = 18;
+              const int margin = 3;
+              const int display_width = it.get_width();
+              const int display_height = it.get_height();
+              if (display_width <= margin * 2 || display_height <= gauge_height) {
+                return;
+              }
+              const int gauge_y = display_height - gauge_height;
+              const int inner_width = display_width - margin * 2;
+              const int inner_height = gauge_height - margin * 2;
+              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+              if (filled_width > inner_width) {
+                filled_width = inner_width;
+              } else if (filled_width < 0) {
+                filled_width = 0;
+              }
+              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+              if (inner_height > 0) {
+                if (filled_width > 0) {
+                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                }
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+              }
+            };
+            auto draw_battery_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 34;
+              const int icon_height = 14;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
+              if (display_width <= icon_width + cap_width + margin * 2) {
+                return;
+              }
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
+              }
+              const bool is_charging = id(usb_power_detect).state;
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
+              }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2 + 1;
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
+            };
+
+            auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                if (rssi > -60.0f) {
+                  level_color = id(lime);
+                  bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
+            };
+
+            draw_volume_bar();
+            draw_battery_icon();
+            draw_wifi_icon();
+        - id: waitingBP # playing
+          lambda: |-
+            // it.image(0, 0, id(WIm));
+            it.fill(Color::BLACK);
+            // Time
+            auto time = id(homeassistant_time).now();
+            if (time.is_valid()) {
+              char str[6];
+              sprintf(str, "%02d:%02d", time.hour, time.minute);
+              it.printf(80, 85, id(font_clock), Color::WHITE, "%s", str);
+            }
+            it.printf(40, 40, id(font_status), Color::WHITE, "%s", id(homeassistant_chanel).state.c_str());
+            it.printf(30, 180, id(font_body), Color::WHITE, "%s", id(menu_chanel).state.c_str());
+            //it.printf(40, 175, id(font_status), Color::WHITE, "%d", id(num_shift).state);
+            auto draw_volume_bar = [&]() {
+              if (!id(volume_display_active)) {
+                return;
+              }
+              float display_volume = id(Vol);
+              if (id(mute) || id(auto_mute_active)) {
+                display_volume = 0.0f;
+              }
+              if (display_volume < 0.0f) {
+                display_volume = 0.0f;
+              }
+              if (display_volume > 1.0f) {
+                display_volume = 1.0f;
+              }
+              const int gauge_height = 18;
+              const int margin = 3;
+              const int display_width = it.get_width();
+              const int display_height = it.get_height();
+              if (display_width <= margin * 2 || display_height <= gauge_height) {
+                return;
+              }
+              const int gauge_y = display_height - gauge_height;
+              const int inner_width = display_width - margin * 2;
+              const int inner_height = gauge_height - margin * 2;
+              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+              if (filled_width > inner_width) {
+                filled_width = inner_width;
+              } else if (filled_width < 0) {
+                filled_width = 0;
+              }
+              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+              if (inner_height > 0) {
+                if (filled_width > 0) {
+                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                }
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+              }
+            };
+            auto draw_battery_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 34;
+              const int icon_height = 14;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                            
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
+              if (display_width <= icon_width + cap_width + margin * 2) {
+                return;
+              }
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
+              }
+              const bool is_charging = id(usb_power_detect).state;
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
+              }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2 + 1;           
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
+            };
+
+            auto draw_wifi_icon = [&]() {
+              const int margin = 4;
+              const int battery_icon_width = 34;
+              const int cap_width = 4;
+              const int battery_icon_height = 14;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (!id(wifi_signal_dbm).has_state()) {
+                return;
+              }
+              const int x = display_width - battery_icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int box_size = 22;
+              const int half_box = box_size / 2;
+              const int wifi_gap = 10;
+              const int center_x = x - wifi_gap - half_box;
+              float rssi = id(wifi_signal_dbm).state;
+              auto level_color = id(red);
+              int bars = 1;
+                if (rssi > -60.0f) {
+                  level_color = id(lime);
+                  bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
+            };
+
+            
+            auto draw_speaker_icon = [&]() {
+              const int margin = 4;
+              const int icon_width = 20;
+              const int icon_height = 20;
+              const int vertical_offset = 2;
+              const int horizontal_offset = 4;
+              int t = 1;
+              if (it.get_width() <= icon_width + margin * 2) {
+                return;
+              }
+              const int x = margin + horizontal_offset;
+              const int y = margin + vertical_offset;
+              const bool is_muted = id(mute) && !id(auto_mute_active);
+              auto symbol_color = is_muted ? id(red) : id(green);
+
+              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
+              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));   
+              t = 2;      
+              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
+              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));                     
+              it.filled_rectangle(x, y+icon_height/4, icon_width, icon_height/2, symbol_color);
+              it.filled_triangle(x, y+icon_height/2, x+icon_width, y, x+icon_width, y+icon_height,symbol_color); 
+              it.line(x+icon_width/2, y+icon_height/4, x+icon_width/2, y+icon_height*3/4, id(black));
+            };            
+            
+            draw_volume_bar();
+            draw_speaker_icon();
+            draw_battery_icon();
+            draw_wifi_icon();           
+        - id: listeningP
+          lambda: |-
+              it.image(0, 0, id(LIm));
+              auto draw_volume_bar = [&]() {
+                if (!id(volume_display_active)) {
+                  return;
+                }
+                float display_volume = id(Vol);
+                if (id(mute) || id(auto_mute_active)) {
+                  display_volume = 0.0f;
+                }
+                if (display_volume < 0.0f) {
+                  display_volume = 0.0f;
+                }
+                if (display_volume > 1.0f) {
+                  display_volume = 1.0f;
+                }
+                const int gauge_height = 18;
+                const int margin = 3;
+                const int display_width = it.get_width();
+                const int display_height = it.get_height();
+                if (display_width <= margin * 2 || display_height <= gauge_height) {
+                  return;
+                }
+                const int gauge_y = display_height - gauge_height;
+                const int inner_width = display_width - margin * 2;
+                const int inner_height = gauge_height - margin * 2;
+                int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+                if (filled_width > inner_width) {
+                  filled_width = inner_width;
+                } else if (filled_width < 0) {
+                  filled_width = 0;
+                }
+                it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+                if (inner_height > 0) {
+                  if (filled_width > 0) {
+                    auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                    it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                  }
+                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+                }
+              };
+              auto draw_battery_icon = [&]() {
+                const int margin = 4;
+                const int icon_width = 34;
+                const int icon_height = 14;
+                const int cap_width = 4;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                auto draw_charging_indicator = [&](int center_x, int center_y) {
+                  const int x = display_width - icon_width - cap_width - margin;
+                  const int y = margin + vertical_offset;
+                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
+                  const int bolt_width = 24;
+                  const int bolt_height = 8;
+                  const int left = center_x - bolt_width / 2;
+                  const int top = center_y - bolt_height / 2 - 1;                
+                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                };
+                if (display_width <= icon_width + cap_width + margin * 2) {
+                  return;
+                }
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int cap_height = icon_height / 2;
+                it.rectangle(x, y, icon_width, icon_height, id(black));
+                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+                const int inner_width = icon_width - 4;
+                const int inner_height = icon_height - 4;
+                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+                if (!id(battery_percent).has_state()) {
+                  return;
+                }
+                const bool is_charging = id(usb_power_detect).state;
+                float percent = id(battery_percent).state;
+                if (percent < 0.0f) {
+                  percent = 0.0f;
+                }
+                if (percent > 100.0f) {
+                  percent = 100.0f;
+                }
+                auto level_color = id(lime);
+                if (percent < 20.0f) {
+                  level_color = id(red);
+                } else if (percent < 50.0f) {
+                  level_color = id(amber);
+                }
+                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+                if (fill_width > inner_width) {
+                  fill_width = inner_width;
+                } else if (fill_width < 0) {
+                  fill_width = 0;
+                }
+                if (fill_width > 0) {
+                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+                }
+                const int center_x = x + icon_width / 2;
+                const int center_y = y + icon_height / 2 + 1;
+                if (is_charging) {
+                  draw_charging_indicator(center_x, center_y);
+                } else {
+                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                }
+              };
+
+              auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                  if (rssi > -60.0f) {
+                    level_color = id(lime);
+                    bars = 3;
+                  } else if (rssi > -75.0f) {
+                    level_color = id(amber);
+                    bars = 2;
+                  }
+                  const int dot_x = center_x;
+                  const int dot_y = y + battery_icon_height - 1;
+                  const float pi = 3.14159265f;
+                  const float start_deg = 200.0f;
+                  const float end_deg = 340.0f;
+                  const float step_deg = 5.0f;
+                auto draw_arc = [&](int radius, int thickness) {
+                  for (int t = 0; t < thickness; t++) {
+                    const int r = radius - t;
+                    bool has_prev = false;
+                    int prev_x = 0;
+                    int prev_y = 0;
+                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                      const float rad = deg * pi / 180.0f;
+                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                      if (has_prev) {
+                        it.line(prev_x, prev_y, px, py, level_color);
+                      }
+                      prev_x = px;
+                      prev_y = py;
+                      has_prev = true;
+                    }
+                  }
+                };
+
+                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+                if (bars >= 1) {
+                  draw_arc(4, 2);
+                }
+                if (bars >= 2) {
+                  draw_arc(7, 2);
+                }
+                if (bars >= 3) {
+                  draw_arc(10, 2);
+                }
+              };
+
+              draw_volume_bar();
+              draw_battery_icon();
+              draw_wifi_icon();
+        - id: answeringP
+          lambda: |-
+              it.image(0, 0, id(AIm));
+              it.rectangle(20 , 24 , 280 , 30 , Color::BLACK );
+              it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
+              it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
+              it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
+              auto draw_volume_bar = [&]() {
+                if (!id(volume_display_active)) {
+                  return;
+                }
+                float display_volume = id(Vol);
+                if (id(mute) || id(auto_mute_active)) {
+                  display_volume = 0.0f;
+                }
+                if (display_volume < 0.0f) {
+                  display_volume = 0.0f;
+                }
+                if (display_volume > 1.0f) {
+                  display_volume = 1.0f;
+                }
+                const int gauge_height = 18;
+                const int margin = 3;
+                const int display_width = it.get_width();
+                const int display_height = it.get_height();
+                if (display_width <= margin * 2 || display_height <= gauge_height) {
+                  return;
+                }
+                const int gauge_y = display_height - gauge_height;
+                const int inner_width = display_width - margin * 2;
+                const int inner_height = gauge_height - margin * 2;
+                int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+                if (filled_width > inner_width) {
+                  filled_width = inner_width;
+                } else if (filled_width < 0) {
+                  filled_width = 0;
+                }
+                it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+                if (inner_height > 0) {
+                  if (filled_width > 0) {
+                    auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                    it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                  }
+                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+                }
+              };
+              auto draw_battery_icon = [&]() {
+                const int margin = 4;
+                const int icon_width = 34;
+                const int icon_height = 14;
+                const int cap_width = 4;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                auto draw_charging_indicator = [&](int center_x, int center_y) {
+                  const int x = display_width - icon_width - cap_width - margin;
+                  const int y = margin + vertical_offset;
+                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
+                  const int bolt_width = 24;
+                  const int bolt_height = 8;
+                  const int left = center_x - bolt_width / 2;
+                  const int top = center_y - bolt_height / 2 - 1;                  
+                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                };
+                if (display_width <= icon_width + cap_width + margin * 2) {
+                  return;
+                }
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int cap_height = icon_height / 2;
+                it.rectangle(x, y, icon_width, icon_height, id(black));
+                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+                const int inner_width = icon_width - 4;
+                const int inner_height = icon_height - 4;
+                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+                if (!id(battery_percent).has_state()) {
+                  return;
+                }
+                const bool is_charging = id(usb_power_detect).state;
+                float percent = id(battery_percent).state;
+                if (percent < 0.0f) {
+                  percent = 0.0f;
+                }
+                if (percent > 100.0f) {
+                  percent = 100.0f;
+                }
+                auto level_color = id(lime);
+                if (percent < 20.0f) {
+                  level_color = id(red);
+                } else if (percent < 50.0f) {
+                  level_color = id(amber);
+                }
+                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+                if (fill_width > inner_width) {
+                  fill_width = inner_width;
+                } else if (fill_width < 0) {
+                  fill_width = 0;
+                } 
+                if (fill_width > 0) {
+                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+                }
+                const int center_x = x + icon_width / 2;
+                const int center_y = y + icon_height / 2 + 1;
+                if (is_charging) {
+                  draw_charging_indicator(center_x, center_y);
+                } else {
+                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+                }
+              };            
+              auto draw_wifi_icon = [&]() {
+                const int margin = 4;
+                const int battery_icon_width = 34;
+                const int cap_width = 4;
+                const int battery_icon_height = 14;
+                const int vertical_offset = 2;
+                const int display_width = it.get_width();
+                if (!id(wifi_signal_dbm).has_state()) {
+                  return;
+                }
+                const int x = display_width - battery_icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                const int box_size = 22;
+                const int half_box = box_size / 2;
+                const int wifi_gap = 10;
+                const int center_x = x - wifi_gap - half_box;
+                float rssi = id(wifi_signal_dbm).state;
+                auto level_color = id(red);
+                int bars = 1;
+                  if (rssi > -60.0f) {
+                    level_color = id(lime);
+                    bars = 3;
+                  } else if (rssi > -75.0f) {
+                    level_color = id(amber);
+                    bars = 2;
+                  }
+                  const int dot_x = center_x;
+                  const int dot_y = y + battery_icon_height - 1;
+                  const float pi = 3.14159265f;
+                  const float start_deg = 200.0f;
+                  const float end_deg = 340.0f;
+                  const float step_deg = 5.0f;
+                auto draw_arc = [&](int radius, int thickness) {
+                  for (int t = 0; t < thickness; t++) {
+                    const int r = radius - t;
+                    bool has_prev = false;
+                    int prev_x = 0;
+                    int prev_y = 0;
+                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                      const float rad = deg * pi / 180.0f;
+                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                      if (has_prev) {
+                        it.line(prev_x, prev_y, px, py, level_color);
+                      }
+                      prev_x = px;
+                      prev_y = py;
+                      has_prev = true;
+                    }
+                  }
+                };
+
+                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+                if (bars >= 1) {
+                  draw_arc(4, 2);
+                }
+                if (bars >= 2) {
+                  draw_arc(7, 2);
+                }
+                if (bars >= 3) {
+                  draw_arc(10, 2);
+                }
+              };            
+              draw_volume_bar();
+              draw_battery_icon();
+              draw_wifi_icon();
+        - id: muteMicP
+          lambda: |-
+            it.image(0, 0, id(muteMicIm));
+            auto draw_volume_bar = [&]() {
+              if (!id(volume_display_active)) {
+                return;
+              }
+              float display_volume = id(Vol);
+              if (id(mute) || id(auto_mute_active)) {
+                display_volume = 0.0f;
+              }
+              if (display_volume < 0.0f) {
+                display_volume = 0.0f;
+              }
+              if (display_volume > 1.0f) {
+                display_volume = 1.0f;
+              }
+              const int gauge_height = 18;
+              const int margin = 3;
+              const int display_width = it.get_width();
+              const int display_height = it.get_height();
+              if (display_width <= margin * 2 || display_height <= gauge_height) {
+                return;
+              }
+              const int gauge_y = display_height - gauge_height;
+              const int inner_width = display_width - margin * 2;
+              const int inner_height = gauge_height - margin * 2;
+              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
+              if (filled_width > inner_width) {
+                filled_width = inner_width;
+              } else if (filled_width < 0) {
+                filled_width = 0;
+              }
+              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
+              if (inner_height > 0) {
+                if (filled_width > 0) {
+                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
+                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
+                }
+                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
+              }
+            };
+            auto draw_battery_icon = [&]() {
+              const int margin = 2;
+              const int icon_width = 30;
+              const int icon_height = 10;
+              const int cap_width = 4;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              auto draw_charging_indicator = [&](int center_x, int center_y) {
+                const int x = display_width - icon_width - cap_width - margin;
+                const int y = margin + vertical_offset;
+                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
+                const int bolt_width = 24;
+                const int bolt_height = 8;
+                const int left = center_x - bolt_width / 2;
+                const int top = center_y - bolt_height / 2 - 1;
+                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
+              };
+              if (display_width <= icon_width + cap_width + margin * 2) {
+                return;
+              }
+              const int x = display_width - icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int cap_height = icon_height / 2;
+              it.rectangle(x, y, icon_width, icon_height, id(black));
+              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
+              const int inner_width = icon_width - 4;
+              const int inner_height = icon_height - 4;
+              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
+              if (!id(battery_percent).has_state()) {
+                return;
+              }
+              const bool is_charging = id(usb_power_detect).state;
+              float percent = id(battery_percent).state;
+              if (percent < 0.0f) {
+                percent = 0.0f;
+              }
+              if (percent > 100.0f) {
+                percent = 100.0f;
+              }
+              auto level_color = id(lime);
+              if (percent < 20.0f) {
+                level_color = id(red);
+              } else if (percent < 50.0f) {
+                level_color = id(amber);
+              }
+              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
+              if (fill_width > inner_width) {
+                fill_width = inner_width;
+              } else if (fill_width < 0) {
+                fill_width = 0;
+              }
+              if (fill_width > 0) {
+                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
+              }
+              const int center_x = x + icon_width / 2;
+              const int center_y = y + icon_height / 2;
+              if (is_charging) {
+                draw_charging_indicator(center_x, center_y);
+              } else {
+                it.printf(center_x, center_y + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
+              }
+            };
+
+            draw_volume_bar();
+            draw_battery_icon();
+            auto draw_wifi_icon = [&]() {
+              const int margin = 2;
+              const int battery_icon_width = 30;
+              const int cap_width = 4;
+              const int battery_icon_height = 10;
+              const int vertical_offset = 2;
+              const int display_width = it.get_width();
+              if (!id(wifi_signal_dbm).has_state()) {
+                return;
+              }
+              const int x = display_width - battery_icon_width - cap_width - margin;
+              const int y = margin + vertical_offset;
+              const int box_size = 22;
+              const int half_box = box_size / 2;
+              const int wifi_gap = 10;
+              const int center_x = x - wifi_gap - half_box;
+              float rssi = id(wifi_signal_dbm).state;
+              auto level_color = id(red);
+              int bars = 1;
+              if (rssi > -60.0f) {
+                level_color = id(lime);
+                bars = 3;
+                } else if (rssi > -75.0f) {
+                  level_color = id(amber);
+                  bars = 2;
+                }
+                const int dot_x = center_x;
+                const int dot_y = y + battery_icon_height - 1;
+                const float pi = 3.14159265f;
+                const float start_deg = 200.0f;
+                const float end_deg = 340.0f;
+                const float step_deg = 5.0f;
+              auto draw_arc = [&](int radius, int thickness) {
+                for (int t = 0; t < thickness; t++) {
+                  const int r = radius - t;
+                  bool has_prev = false;
+                  int prev_x = 0;
+                  int prev_y = 0;
+                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
+                    const float rad = deg * pi / 180.0f;
+                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                    if (has_prev) {
+                      it.line(prev_x, prev_y, px, py, level_color);
+                    }
+                    prev_x = px;
+                    prev_y = py;
+                    has_prev = true;
+                  }
+                }
+              };
+
+              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
+              if (bars >= 1) {
+                draw_arc(4, 2);
+              }
+              if (bars >= 2) {
+                draw_arc(7, 2);
+              }
+              if (bars >= 3) {
+                draw_arc(10, 2);
+              }
+            };
+            draw_wifi_icon();
