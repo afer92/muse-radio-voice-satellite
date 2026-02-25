@@ -1,0 +1,11 @@
+# diagnostics
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      id: IpAdress
+      name: IP
+    ssid:
+      name: SSID
+    mac_address:
+      name: ESP Mac Wifi Address
+      id: Mac_address
