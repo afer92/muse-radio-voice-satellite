@@ -1,0 +1,87 @@
+# font.yaml
+
+font:
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_body
+    size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_status
+    size: 30
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_clock
+    size: 80
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_request
+    size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_response
+    size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_battery_small
+    size: 9
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_wifi_label
+    size: 9
+
+color:
+  - id: green
+    hex: '75D15F'
+  - id: red
+    hex: 'FF3131'
+  - id: blue
+    hex: '47B7E9'
+  - id: amber
+    hex: 'FBAB35'
+  - id: lime
+    hex: '20FC30'
+  - id: pink
+    hex: 'D92BBC'
+  - id: yellow
+    hex: 'FFC000'
+  - id: black
+    hex: '000000'
+  - id: white
+    hex: 'ffffff'
+  - id: purple
+    hex: '73264D'
+  - id: light_blue
+    hex: 'CFE2F3'
+  - id: bg_blue
+    hex: '032341'
+  - id: bg_purple
+    hex: '301020'
+  - id: bg_green
+    hex: '05350B'
+  - id: bg_red
+    hex: '3C0000'
+  - id: bg_pink
+    hex: '61034D'
+  - id: bg_charcoal
+    hex: '323232'
+  - id: bg_brown
+    hex: '41220D'
+  - id: bg_grey
+    hex: '4F4F4F'
+  - id: light_green
+    hex: 'AAD1AA' 
