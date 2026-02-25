@@ -1,0 +1,69 @@
+# extra1.yaml
+
+web_server:
+  include_internal: True
+  version: 3
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
+
+button:
+  - platform: restart
+    id: bt_restart
+    name: bt_restart
+
+image:
+  - file: "${image_path}Raspiaudio.png"
+    id: raspiIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}WFWW.png"
+    id: WFWWIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}W.png"
+    id: WIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}LISTEN.png"
+    id: LIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}ANSWER.png"
+    id: AIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}mute_mic.png"
+    id: muteMicIm
+    resize: 320x240
+    type: RGB
+  - file:  "${image_path}mute_speaker.png"
+    id: muteSpeakerIm
+    resize: 320x240
+    type: RGB
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    on_time_sync:
+      then:
+        - logger.log: "Synchronized system clock"
+
+text:
+  - platform: template
+    id: homeassistant_chanel
+    name: homeassistant_chanel
+    optimistic: true
+    mode: text
+    initial_value: "Default"
+  - platform: template
+    id: menu_chanel
+    name: menu_chanel
+    optimistic: true
+    mode: text
+    initial_value: "Default"
+
