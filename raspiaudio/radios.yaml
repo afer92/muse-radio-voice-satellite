@@ -1,0 +1,16 @@
+# radios.yaml
+
+substitutions:
+
+  franceinfo: 'http://direct.franceinfo.fr/live/franceinfo-midfi.mp3'
+  franceinter: 'http://direct.franceinter.fr/live/franceinter-midfi.mp3'
+  franceculture: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
+  francemusique: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
+  fip: 'http://direct.fipradio.fr/live/fip-midfi.mp3'
+  mouv: 'http://icecast.radiofrance.fr/mouv-midfi.mp3'
+  iciidf: 'http://direct.francebleu.fr/live/fb1071-midfi.mp3'
+  radioclassique: 'http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3'
+  rmc: 'http://audio.bfmtv.com/rmcradio_128.mp3'
+  radionova: 'http://novazz.ice.infomaniak.ch/novazz-128.mp3'
+  ouifm: 'http://ouifm.ice.infomaniak.ch/ouifm-high.mp3'
+  latina: 'http://start-latina.ice.infomaniak.ch/start-latina-high.mp3'
