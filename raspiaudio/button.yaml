@@ -5,8 +5,30 @@ binary_sensor:
   - platform: template
     name: "Radio 4"
     id: btn_confirm
+    #filters:
+    #  - invert:
+    #  - delayed_on: 30ms
+    #  - delayed_off: 30ms
+    #on_multi_click:
+    #  - timing:
+    #      - ON for 40ms to 400ms
+    #      - OFF for at least 330ms
+    #    then:
+    #      - switch.toggle: btn_shift
+    #      - script.execute: script_btn1
+    #  - timing:
+    #      - ON for 40ms to 400ms
+    #      - OFF for 40ms to 300ms
+    #      - ON for 40ms to 400ms
+    #      - OFF for at least 330ms
+    #    then:
+    #      - number.set:
+    #         id: num_shift
+    #         value: 0
+    #      - script.execute: script_btn1
+
     on_press:
-       - logger.log: "Radio 4 button pressed"
+       - logger.log: "Radio# 4 button pressed"
        - switch.toggle: btn_shift
        - script.execute: script_btn1
 
@@ -15,85 +37,31 @@ binary_sensor:
     id: btn_1
     on_press:
        - logger.log: "Radio 1 button pressed"
-       - script.execute: script_btn1
+       - number.set:
+           id: num_btn
+           value: 1 
+       - script.execute: script_btn
 
   - platform: template
     name: "Radio 2"
     id: btn_2
     on_press:
-       - logger.log: "Radio 1 button pressed"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 0;'
-           then:
-             - media_player.play_media: '${franceinter}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "France Inter"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 1;'
-           then:
-             - media_player.play_media: '${fip}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "FIP"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 2;'
-           then:
-             - media_player.play_media: '${radioclassique}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "Radio Classique"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 3;'
-           then:
-             - media_player.play_media: '${ouifm}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "3: Oui FM"
-       - script.execute: script_menu
+       - logger.log: "Radio 2 button pressed"
+       - number.set:
+           id: num_btn
+           value: 2 
+       - script.execute: script_btn
 
 
   - platform: template
     name: "Radio 3"
     id: btn_3
     on_press:
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 0;'
-           then:
-             - media_player.play_media: '${franceculture}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "France Culture"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 1;'
-           then:
-             - media_player.play_media: '${mouv}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "MOUV"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 2;'
-           then:
-             - media_player.play_media: '${radionova}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "Radio Nova"
-       - if:
-           condition:
-             lambda: 'return id(num_shift).state == 3;'
-           then:
-             - media_player.play_media: '${latina}'
-             - text.set:
-                 id: homeassistant_chanel
-                 value: "Latina"
-       - script.execute: script_menu
+       - logger.log: "Radio 3 button pressed"
+       - number.set:
+           id: num_btn
+           value: 3 
+       - script.execute: script_btn
 
 
 switch:
@@ -121,13 +89,48 @@ number:
     name: "num_shift"
     id: "num_shift"
     optimistic: true
+    restore_value: true
     min_value: 0
     max_value: 3
     step: 1
     initial_value: 0
+    on_value:
+      then:
+         - script.execute: script_btn
+
+  - platform: template
+    name: "num_btn"
+    id: "num_btn"
+    optimistic: true
+    restore_value: true
+    min_value: 1
+    max_value: 3
+    step: 1
+    initial_value: 1
+    on_value:
+      then:
+         - script.execute: script_btn
 
 
 script:
+
+  - id: script_btn
+    then:
+       - if:
+           condition:
+             lambda: 'return id(num_btn).state == 1;'
+           then:
+              - script.execute: script_btn1
+       - if:
+           condition:
+             lambda: 'return id(num_btn).state == 2;'
+           then:
+              - script.execute: script_btn2
+       - if:
+           condition:
+             lambda: 'return id(num_btn).state == 3;'
+           then:
+              - script.execute: script_btn3
 
   - id: script_btn1
     then:
@@ -165,6 +168,80 @@ script:
                  id: homeassistant_chanel
                  value: "RMC"
        - script.execute: script_menu
+
+  - id: script_btn2
+    then:
+       - logger.log: "Radio 1 button pressed"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 0;'
+           then:
+             - media_player.play_media: '${franceinter}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "France Inter"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 1;'
+           then:
+             - media_player.play_media: '${fip}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "FIP"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 2;'
+           then:
+             - media_player.play_media: '${radioclassique}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Radio Classique"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 3;'
+           then:
+             - media_player.play_media: '${ouifm}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "3: Oui FM"
+       - script.execute: script_menu
+
+  - id: script_btn3
+    then:
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 0;'
+           then:
+             - media_player.play_media: '${franceculture}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "France Culture"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 1;'
+           then:
+             - media_player.play_media: '${mouv}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "MOUV"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 2;'
+           then:
+             - media_player.play_media: '${radionova}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Radio Nova"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 3;'
+           then:
+             - media_player.play_media: '${latina}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Latina"
+       - script.execute: script_menu
+
 
   - id: script_menu
     then:
