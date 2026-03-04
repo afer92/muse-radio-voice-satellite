@@ -10,6 +10,8 @@ packages:   # as a list
   - !include raspiaudio/font.yaml
   - !include raspiaudio/display.yaml
   - !include raspiaudio/button.yaml
+  - !include raspiaudio/ir.yaml
+  #- !include raspiaudio/sendspin.yaml
   - !include common/base_sensor.yaml
   - !include common/base_text_sensor.yaml
 
@@ -687,87 +689,7 @@ binary_sensor:
     on_click:
        then:
           script.execute: go_assist
-
-  - platform: remote_receiver
-    name: "IR OK"
-    id: ir_ok
-    nec:
-      address: 0xFE01
-      command: 0xF906
-    filters:
-      - delayed_off: 100ms
-    on_click:
-      - logger.log: "IR OK received"
-  - platform: remote_receiver
-    name: "IR UP"
-    id: ir_up
-    nec:
-      address: 0xFE01
-      command: 0xFA05
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR UP received"
-  - platform: remote_receiver
-    name: "IR DOWN"
-    id: ir_down
-    nec:
-      address: 0xFE01
-      command: 0xFB04
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR DOWN received"
-  - platform: remote_receiver
-    name: "IR RIGHT"
-    id: ir_right
-    nec:
-      address: 0xFE01
-      command: 0xF50A
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR RIGHT received"
-  - platform: remote_receiver
-    name: "IR LEFT"
-    id: ir_left
-    nec:
-      address: 0xFE01
-      command: 0xFD02
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR LEFT received"
-  - platform: remote_receiver
-    name: "IR LIKE"
-    id: ir_like
-    nec:
-      address: 0xFE01
-      command: 0xF40B
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR LIKE received"
-  - platform: remote_receiver
-    name: "IR HOME"
-    id: ir_home
-    nec:
-      address: 0xFE01
-      command: 0xFC03
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR HOME received"
-  - platform: remote_receiver
-    name: "IR BIN"
-    id: ir_bin
-    nec:
-      address: 0xFE01
-      command: 0xBB44
-    filters:
-      - delayed_off: 100ms
-    on_press:
-      - logger.log: "IR BIN received"                  
+                 
 switch:
   - platform: template
     id: mic_mute_switch
