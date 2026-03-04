@@ -28,7 +28,7 @@ binary_sensor:
     #      - script.execute: script_btn1
 
     on_press:
-       - logger.log: "Radio# 4 button pressed"
+       - logger.log: "Radio 4 button pressed"
        - switch.toggle: btn_shift
        - script.execute: script_btn1
 
