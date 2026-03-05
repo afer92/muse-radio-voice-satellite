@@ -29,8 +29,9 @@ binary_sensor:
 
     on_press:
        - logger.log: "Radio 4 button pressed"
-       - switch.toggle: btn_shift
-       - script.execute: script_btn1
+       - light.toggle: screen_backlight
+       #- switch.toggle: btn_shift
+       #- script.execute: script_btn1
 
   - platform: template
     name: "Radio 1"
@@ -91,7 +92,7 @@ number:
     optimistic: true
     restore_value: true
     min_value: 0
-    max_value: 3
+    max_value: 6
     step: 1
     initial_value: 0
     on_value:
@@ -167,6 +168,30 @@ script:
              - text.set:
                  id: homeassistant_chanel
                  value: "RMC"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 4;'
+           then:
+             - media_player.play_media: '${nrj}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "NRJ"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 5;'
+           then:
+             - media_player.play_media: '${nostalgie_paris}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Nostalgie Paris"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 6;'
+           then:
+             - media_player.play_media: '${rfm}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "RFM"
        - script.execute: script_menu
 
   - id: script_btn2
@@ -204,6 +229,30 @@ script:
              - text.set:
                  id: homeassistant_chanel
                  value: "3: Oui FM"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 4;'
+           then:
+             - media_player.play_media: '${nrj_paris}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "NRJ Paris"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 5;'
+           then:
+             - media_player.play_media: '${funradio}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Fun Radio"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 6;'
+           then:
+             - media_player.play_media: '${europe1}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Europe 1"
        - script.execute: script_menu
 
   - id: script_btn3
@@ -240,6 +289,30 @@ script:
              - text.set:
                  id: homeassistant_chanel
                  value: "Latina"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 4;'
+           then:
+             - media_player.play_media: '${nostalgie}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Nostalgie"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 5;'
+           then:
+             - media_player.play_media: '${cherifm}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Cherie FM"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 6;'
+           then:
+             - media_player.play_media: '${europe2}'
+             - text.set:
+                 id: homeassistant_chanel
+                 value: "Europe 2"
        - script.execute: script_menu
 
 
@@ -273,4 +346,25 @@ script:
              - text.set:
                  id: menu_chanel
                  value: "31: RMC    32: Oui FM    33: Latina"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 4;'
+           then:
+             - text.set:
+                 id: menu_chanel
+                 value: "41: NRJ   42: NRJ Paris  43: Nostalgie"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 5;'
+           then:
+             - text.set:
+                 id: menu_chanel
+                 value: "51: Nost Paris  52: Fun Radio  53: Cherie"
+       - if:
+           condition:
+             lambda: 'return id(num_shift).state == 6;'
+           then:
+             - text.set:
+                 id: menu_chanel
+                 value: "61: RFM  62: Europe 1  63: Europe 2"
 
