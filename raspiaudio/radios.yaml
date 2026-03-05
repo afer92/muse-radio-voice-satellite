@@ -1,16 +1,32 @@
 # radios.yaml
 
 substitutions:
-
+  # 0 5
   franceinfo: 'http://direct.franceinfo.fr/live/franceinfo-midfi.mp3'
   franceinter: 'http://direct.franceinter.fr/live/franceinter-midfi.mp3'
   franceculture: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
+  # 1# 6
   francemusique: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
   fip: 'http://direct.fipradio.fr/live/fip-midfi.mp3'
   mouv: 'http://icecast.radiofrance.fr/mouv-midfi.mp3'
+  # 2
   iciidf: 'http://direct.francebleu.fr/live/fb1071-midfi.mp3'
   radioclassique: 'http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3'
   rmc: 'http://audio.bfmtv.com/rmcradio_128.mp3'
+  # 3
   radionova: 'http://novazz.ice.infomaniak.ch/novazz-128.mp3'
   ouifm: 'http://ouifm.ice.infomaniak.ch/ouifm-high.mp3'
   latina: 'http://start-latina.ice.infomaniak.ch/start-latina-high.mp3'
+  # 4
+  nrj: "https://streaming.nrjaudio.fm/oumvmk8fnozc?origine=fluxradios"
+  nrj_paris: "https://streaming.nrjaudio.fm/ou5k6tirv93h?origine=fluxradios"
+  nostalgie: "https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios"
+  # 5
+  nostalgie_paris: "https://streaming.nrjaudio.fm/oumr5i8fnozc?origine=fluxradios"
+  funradio: "http://streamer-04.rtl.fr/fun-1-44-128?listen=webCwsBCggNCQgLDQUGBAcGBg"
+  cherifm: "https://streaming.nrjaudio.fm/ouuku85n3nje?origine=fluxradios"
+  # 6
+  rfm: "http://rfm.lmn.fm/rfm.mp3"
+  europe1: "http://europe1.lmn.fm/europe1.mp3"
+  europe2: "http://europe2.lmn.fm/europe2.mp3"
+  
