@@ -1,5 +1,390 @@
 # display.yaml
 
+substitutions:
+  startup_sound_file: "/config/esphome/media/Home_Connected.flac"
+  ha_weather_entity: weather.forecast_maison
+
+font:
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_display
+    size: 18
+    glyphsets:
+      - GF_Latin_Core
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 600
+    id: font_boot
+    size: 34
+    glyphsets:
+      - GF_Latin_Core
+
+  - file: "/config/esphome/fonts/DSEG7ClassicMini-Bold.ttf"
+    id: font_7seg
+    size: 42
+    glyphs: "0123456789:- "
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_temp_big
+    size: 58
+    glyphs: "0123456789-"
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_temp_unit
+    size: 22
+
+  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
+    id: font_mdi_tech
+    size: 24
+    bpp: 4
+    glyphs:
+      - "\U000F036c" # Micro on
+      - "\U000F036d" # Micro off
+      - "\U000F007A" # mdi-battery-10
+      - "\U000F007B" # mdi-battery-20
+      - "\U000F007C" # mdi-battery-30
+      - "\U000F007D" # mdi-battery-40
+      - "\U000F007E" # mdi-battery-50
+      - "\U000F007F" # mdi-battery-60
+      - "\U000F0080" # mdi-battery-70
+      - "\U000F0081" # mdi-battery-80
+      - "\U000F0082" # mdi-battery-90
+      - "\U000F0079" # mdi-battery (full)
+      - "\U000F008E" # mdi-battery-outline
+      - "\U000F0091" # mdi-battery-unknown
+      - "\U000F06a5" # Power plug on
+      - "\U000F06a6" # Powwer plug off
+      - "\U000F1425" # Powwer plug outline
+      - "\U000F0370" # Micro plug in
+      - "\U000F0371" # Micro plug out
+      - "\U000F05A9" # Wifi
+
+  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
+    id: font_mdi_weather
+    size: 48
+    bpp: 4
+    glyphs:
+      - "\U000F0590"
+      - "\U000F0592"
+      - "\U000F0593"
+      - "\U000F0595"
+      - "\U000F0596"
+      - "\U000F0597"
+      - "\U000F0598"
+      - "\U000F0599"
+
+api:
+  on_client_connected:
+    - if:
+        condition:
+          lambda: 'return (0 == client_info.find("Home Assistant "));'
+        then:
+          - lvgl.widget.show: lbl_hastatus
+  on_client_disconnected:
+    - if:
+        condition:
+          lambda: 'return (0 == client_info.find("Home Assistant "));'
+        then:
+          - lvgl.widget.hide: lbl_hastatus
+
+text_sensor:
+
+  - platform: template
+    id: clock_hm
+    update_interval: 1s
+    lambda: |-
+      auto t = id(homeassistant_time).now();
+      if (!t.is_valid()) return std::string("--:--:--");
+      bool hide_colons = ((t.second % 2) == 0);
+      char buf[9];
+      if (hide_colons) snprintf(buf, sizeof(buf), "%02d %02d %02d", t.hour, t.minute, t.second);
+      else snprintf(buf, sizeof(buf), "%02d:%02d:%02d", t.hour, t.minute, t.second);
+      return std::string(buf);
+    on_value:
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.label.update:
+                id: clock_label_waitingBP
+                text: !lambda return x;
+      - if:
+          condition:
+            lvgl.page.is_showing: answeringP
+          then:
+            - lvgl.label.update:
+                id: clock_label_answeringP
+                text: !lambda return x;
+
+  - platform: template
+    id: chanel_ha
+    update_interval: 1s
+    lambda: |-
+      return id(homeassistant_chanel).state;
+    on_value:
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.label.update:
+                id: chanel_waitingBP
+                text: !lambda return x;
+
+  - platform: template
+    id: chanel_menu
+    update_interval: 1s
+    lambda: |-
+      return id(menu_chanel).state;
+    on_value:
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.label.update:
+                id: menu_waitingBP
+                text: !lambda return x;
+
+  - platform: template
+    id: disp_status
+    update_interval: 1s
+    lambda: |-
+      return id(txt_status).state;
+    on_value:
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.label.update:
+                id: disp_status_waitingBP
+                text: !lambda return x;
+
+  - platform: template
+    id: vol_int
+    update_interval: 1s
+    lambda: |-
+      int display_volume = (int) (id(Vol) * 100.0f);
+      char buffer[10]; 
+      sprintf(buffer, "%d", display_volume);
+      //auto n = parse_number<int>(buffer);
+      return std::string(buffer);
+    on_value:
+      #- logger.log:
+      #      format: "vol: %d == %f"
+      #      args: [ stoi(x), 'id(Vol)' ]
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.bar.update:
+                id: bar_vol_id
+                #value: !lambda return x;
+                value: !lambda return stoi(x);
+                #value: 30
+
+  - platform: template
+    id: disp_mute
+    update_interval: 1s
+    lambda: |-
+      char buffer[10]; 
+      sprintf(buffer, "%d", id(mute));
+      return std::string(buffer);
+    on_value:
+      - if:
+          condition:
+            lambda: return (stoi(x) == 1);
+          then:
+            - lvgl.bar.update:
+                id: bar_vol_id
+                indicator:
+                  bg_color: 0xFF0000
+          else:
+            - lvgl.bar.update:
+                id: bar_vol_id
+                indicator:
+                  bg_color: 0x0000FF
+
+  - platform: template
+    id: disp_mic_mute
+    update_interval: 1s
+    lambda: |-
+      char buffer[10]; 
+      sprintf(buffer, "%d", id(mic_muted));
+      return std::string(buffer);
+    on_value:
+      - if:
+          condition:
+            lambda: return (stoi(x) == 1);
+          then:
+            - lvgl.label.update:
+                id: disp_micro_waitingBP
+                text: "\U000F036d"
+                text_color: 0x00FF00
+          else:
+            - lvgl.label.update:
+                id: disp_micro_waitingBP
+                text: "\U000F036c"
+                text_color: 0xFF0000
+
+  - platform: template
+    id: disp_microplug
+    update_interval: 1s
+    lambda: |-
+      char buffer[10]; 
+      sprintf(buffer, "%d", id(jack_detect).state);
+      return std::string(buffer);
+    on_value:
+      - if:
+          condition:
+            lambda: return (stoi(x) == 1);
+          then:
+            - lvgl.label.update:
+                id: disp_microplug_waitingBP
+                text: "\U000F0370"
+                text_color: 0x00FF00
+          else:
+            - lvgl.label.update:
+                id: disp_microplug_waitingBP
+                text: "\U000F0371"
+                text_color: 0xFF0000
+
+  - platform: template
+    id: disp_powerplug
+    update_interval: 1s
+    lambda: |-
+      char buffer[10]; 
+      sprintf(buffer, "%d", id(usb_power_detect).state);
+      return std::string(buffer);
+    on_value:
+      - if:
+          condition:
+            lambda: return (stoi(x) == 1);
+          then:
+            - lvgl.label.update:
+                id: disp_powerplug_waitingBP
+                text: "\U000F06a5"
+                text_color: 0x00FF00
+          else:
+            - lvgl.label.update:
+                id: disp_powerplug_waitingBP
+                text: "\U000F06a6"
+                text_color: 0xFF0000
+
+  - platform: homeassistant
+    id: ha_weather_condition
+    entity_id: ${ha_weather_entity}
+    on_value:
+      - lambda: |-
+          const char* icon = "\U000F0590";
+          auto c = id(ha_weather_condition).state;
+
+          if (c == "sunny" || c == "clear") {
+            icon = "\U000F0599";
+          } else if (c == "partlycloudy") {
+            icon = "\U000F0595";
+          } else if (c == "cloudy") {
+            icon = "\U000F0590";
+          } else if (c == "rainy") {
+            icon = "\U000F0597";
+          } else if (c == "pouring") {
+            icon = "\U000F0596";
+          } else if (c == "snowy") {
+            icon = "\U000F0598";
+          } else if (c == "lightning") {
+            icon = "\U000F0593";
+          } else if (c == "hail") {
+            icon = "\U000F0592";
+          }
+
+          lv_label_set_text(id(weather_icon_glow), icon);
+          lv_label_set_text(id(weather_icon), icon);
+
+  - platform: template
+    id: weather_temp_big
+    update_interval: 15s
+    lambda: |-
+      if (!id(ha_weather_temperature).has_state()) return std::string("--");
+      int ti = (int) lroundf(id(ha_weather_temperature).state);
+      char buf[8];
+      snprintf(buf, sizeof(buf), "%d", ti);
+      return std::string(buf);
+    on_value:
+      - if:
+          condition:
+            lvgl.page.is_showing: waitingBP
+          then:
+            - lvgl.label.update:
+                id: weather_big_temp
+                text: !lambda return x;
+
+sensor:
+
+  - platform: homeassistant
+    id: ha_weather_temperature
+    entity_id: ${ha_weather_entity}
+    attribute: temperature
+
+  - platform: template
+    id: sns_battery_percentage
+    update_interval: 1s
+    lambda: |-
+      return id(battery_percent).state;
+    on_value:
+      - lvgl.label.update:
+          id: lbl_battery_status
+          text: !lambda |-
+            static char buf[10];
+            std::string icon;
+            if (x == 100) {
+                icon = "\U000F0079"; // mdi-battery (full)
+            } else if (x > 90) {
+                icon = "\U000F0082"; // mdi-battery-90
+            } else if (x > 80) {
+                icon = "\U000F0081"; // mdi-battery-80
+            } else if (x > 70) {
+                icon = "\U000F0080"; // mdi-battery-70
+            } else if (x > 60) {
+                icon = "\U000F007F"; // mdi-battery-60
+            } else if (x > 50) {
+                icon = "\U000F007E"; // mdi-battery-50
+            } else if (x > 40) {
+                icon = "\U000F007D"; // mdi-battery-40
+            } else if (x > 30) {
+                icon = "\U000F007C"; // mdi-battery-30
+            } else if (x > 20) {
+                icon = "\U000F007B"; // mdi-battery-20
+            } else if (x > 10) {
+                icon = "\U000F007A"; // mdi-battery-10
+            } else if (x > 0) {
+                icon = "\U000F008E"; // mdi-battery-outline
+            } else {
+                icon = "\U000F0091"; // mdi-battery-unknown
+            }
+            snprintf(buf, sizeof(buf), "%s", icon.c_str());
+            return buf;
+          text_color: !lambda |-
+            int color = 0x808080;
+            if (x > 70) {
+               color = 0xFFFF00;
+            } else if (x > 40) {
+               color = 0x00FF00;
+            } else if (x > 20) {
+               color = 0x008000;
+            } else {
+               color = 0xff0000;
+            }
+            return lv_color_hex(color);
+
 display:
   - id: myDisplay
     platform: ili9xxx
@@ -12,958 +397,238 @@ display:
     rotation: 90
     update_interval: never
     auto_clear_enabled: false
-    pages:
-        - id: logoP
-          lambda: |-
-            it.image(0, 0, id(raspiIm));
-            auto draw_volume_bar = [&]() {
-              if (!id(volume_display_active)) {
-                return;
-              }
-              float display_volume = id(Vol);
-              if (id(mute) || id(auto_mute_active)) {
-                display_volume = 0.0f;
-              }
-              if (display_volume < 0.0f) {
-                display_volume = 0.0f;
-              }
-              if (display_volume > 1.0f) {
-                display_volume = 1.0f;
-              }
-              const int gauge_height = 18;
-              const int margin = 3;
-              const int display_width = it.get_width();
-              const int display_height = it.get_height();
-              if (display_width <= margin * 2 || display_height <= gauge_height) {
-                return;
-              }
-              const int gauge_y = display_height - gauge_height;
-              const int inner_width = display_width - margin * 2;
-              const int inner_height = gauge_height - margin * 2;
-              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-              if (filled_width > inner_width) {
-                filled_width = inner_width;
-              } else if (filled_width < 0) {
-                filled_width = 0;
-              }
-              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-              if (inner_height > 0) {
-                if (filled_width > 0) {
-                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-              }
-            };
-            draw_volume_bar();
-        - id: wifiWaitingP
-          lambda: |-
-            const int display_width = it.get_width();
-            const int display_height = it.get_height();
-            it.filled_rectangle(0, 0, display_width, display_height, id(bg_blue));
-            it.printf(display_width / 2, display_height / 2 - 12, id(font_request), id(white), TextAlign::CENTER, "Waiting WiFi...");
-            it.printf(display_width / 2, display_height / 2 + 12, id(font_request), id(white), TextAlign::CENTER, "Connecting to network");
-        - id: waitingP # wait word
-          lambda: |-
-            it.image(0, 0, id(WFWWIm));
-            auto draw_volume_bar = [&]() {
-              if (!id(volume_display_active)) {
-                return;
-              }
-              float display_volume = id(Vol);
-              if (id(mute) || id(auto_mute_active)) {
-                display_volume = 0.0f;
-              }
-              if (display_volume < 0.0f) {
-                display_volume = 0.0f;
-              }
-              if (display_volume > 1.0f) {
-                display_volume = 1.0f;
-              }
-              const int gauge_height = 18;
-              const int margin = 3;
-              const int display_width = it.get_width();
-              const int display_height = it.get_height();
-              if (display_width <= margin * 2 || display_height <= gauge_height) {
-                return;
-              }
-              const int gauge_y = display_height - gauge_height;
-              const int inner_width = display_width - margin * 2;
-              const int inner_height = gauge_height - margin * 2;
-              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-              if (filled_width > inner_width) {
-                filled_width = inner_width;
-              } else if (filled_width < 0) {
-                filled_width = 0;
-              }
-              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-              if (inner_height > 0) {
-                if (filled_width > 0) {
-                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-              }
-            };
-            auto draw_battery_icon = [&]() {
-              const int margin = 4;
-              const int icon_width = 34;
-              const int icon_height = 14;
-              const int cap_width = 4;
-              const int vertical_offset = 2;
-              const int display_width = it.get_width();
-              auto draw_charging_indicator = [&](int center_x, int center_y) {
-                const int x = display_width - icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
-                const int bolt_width = 24;
-                const int bolt_height = 8;
-                const int left = center_x - bolt_width / 2;
-                const int top = center_y - bolt_height / 2 - 1;
-                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-              };
-              if (display_width <= icon_width + cap_width + margin * 2) {
-                return;
-              }
-              const int x = display_width - icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              const int cap_height = icon_height / 2;
-              it.rectangle(x, y, icon_width, icon_height, id(black));
-              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
-              const int inner_width = icon_width - 4;
-              const int inner_height = icon_height - 4;
-              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
-              if (!id(battery_percent).has_state()) {
-                return;
-              }
-              const bool is_charging = id(usb_power_detect).state;
-              float percent = id(battery_percent).state;
-              if (percent < 0.0f) {
-                percent = 0.0f;
-              }
-              if (percent > 100.0f) {
-                percent = 100.0f;
-              }
-              auto level_color = id(lime);
-              if (percent < 20.0f) {
-                level_color = id(red);
-              } else if (percent < 50.0f) {
-                level_color = id(amber);
-              }
-              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
-              if (fill_width > inner_width) {
-                fill_width = inner_width;
-              } else if (fill_width < 0) {
-                fill_width = 0;
-              }
-              if (fill_width > 0) {
-                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
-              }
-              const int center_x = x + icon_width / 2;
-              const int center_y = y + icon_height / 2 + 1;
-              if (is_charging) {
-                draw_charging_indicator(center_x, center_y);
-              } else {
-                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
-              }
-            };
 
-            auto draw_wifi_icon = [&]() {
-                const int margin = 4;
-                const int battery_icon_width = 34;
-                const int cap_width = 4;
-                const int battery_icon_height = 14;
-                const int vertical_offset = 2;
-                const int display_width = it.get_width();
-                if (!id(wifi_signal_dbm).has_state()) {
-                  return;
-                }
-                const int x = display_width - battery_icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                const int box_size = 22;
-                const int half_box = box_size / 2;
-                const int wifi_gap = 10;
-                const int center_x = x - wifi_gap - half_box;
-                float rssi = id(wifi_signal_dbm).state;
-                auto level_color = id(red);
-                int bars = 1;
-                if (rssi > -60.0f) {
-                  level_color = id(lime);
-                  bars = 3;
-                } else if (rssi > -75.0f) {
-                  level_color = id(amber);
-                  bars = 2;
-                }
-                const int dot_x = center_x;
-                const int dot_y = y + battery_icon_height - 1;
-                const float pi = 3.14159265f;
-                const float start_deg = 200.0f;
-                const float end_deg = 340.0f;
-                const float step_deg = 5.0f;
-              auto draw_arc = [&](int radius, int thickness) {
-                for (int t = 0; t < thickness; t++) {
-                  const int r = radius - t;
-                  bool has_prev = false;
-                  int prev_x = 0;
-                  int prev_y = 0;
-                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
-                    const float rad = deg * pi / 180.0f;
-                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
-                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
-                    if (has_prev) {
-                      it.line(prev_x, prev_y, px, py, level_color);
-                    }
-                    prev_x = px;
-                    prev_y = py;
-                    has_prev = true;
-                  }
-                }
-              };
+lvgl:
+  displays:
+    - myDisplay
+  buffer_size: 25%
+  color_depth: 16
+  bg_color: 0x000000
+  default_font: font_display
 
-              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
-              if (bars >= 1) {
-                draw_arc(4, 2);
-              }
-              if (bars >= 2) {
-                draw_arc(7, 2);
-              }
-              if (bars >= 3) {
-                draw_arc(10, 2);
-              }
-            };
+  top_layer:
+    widgets:
+      - label:
+          text: "\U000F05A9"
+          id: lbl_hastatus
+          hidden: true
+          align: top_right
+          x: 2
+          y: 7
+          text_align: right
+          text_color: 0xFFFFFF
+          text_font: font_mdi_tech
 
-            draw_volume_bar();
-            draw_battery_icon();
-            draw_wifi_icon();
-        - id: waitingBP # playing
-          lambda: |-
-            // it.image(0, 0, id(WIm));
-            it.fill(Color::BLACK);
-            // Time
-            auto time = id(homeassistant_time).now();
-            if (time.is_valid()) {
-              char str[6];
-              sprintf(str, "%02d:%02d", time.hour, time.minute);
-              it.printf(80, 85, id(font_clock), Color::WHITE, "%s", str);
-            }
-            it.printf(40, 40, id(font_status), Color::WHITE, "%s", id(homeassistant_chanel).state.c_str());
-            it.printf(30, 180, id(font_body), Color::WHITE, "%s", id(menu_chanel).state.c_str());
-            //it.printf(40, 175, id(font_status), Color::WHITE, "%d", id(num_shift).state);
-            auto draw_volume_bar = [&]() {
-              if (!id(volume_display_active)) {
-                return;
-              }
-              float display_volume = id(Vol);
-              if (id(mute) || id(auto_mute_active)) {
-                display_volume = 0.0f;
-              }
-              if (display_volume < 0.0f) {
-                display_volume = 0.0f;
-              }
-              if (display_volume > 1.0f) {
-                display_volume = 1.0f;
-              }
-              const int gauge_height = 18;
-              const int margin = 3;
-              const int display_width = it.get_width();
-              const int display_height = it.get_height();
-              if (display_width <= margin * 2 || display_height <= gauge_height) {
-                return;
-              }
-              const int gauge_y = display_height - gauge_height;
-              const int inner_width = display_width - margin * 2;
-              const int inner_height = gauge_height - margin * 2;
-              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-              if (filled_width > inner_width) {
-                filled_width = inner_width;
-              } else if (filled_width < 0) {
-                filled_width = 0;
-              }
-              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-              if (inner_height > 0) {
-                if (filled_width > 0) {
-                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-              }
-            };
-            auto draw_battery_icon = [&]() {
-              const int margin = 4;
-              const int icon_width = 34;
-              const int icon_height = 14;
-              const int cap_width = 4;
-              const int vertical_offset = 2;
-              const int display_width = it.get_width();
-              auto draw_charging_indicator = [&](int center_x, int center_y) {
-              const int x = display_width - icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                            
-                const int bolt_width = 24;
-                const int bolt_height = 8;
-                const int left = center_x - bolt_width / 2;
-                const int top = center_y - bolt_height / 2 - 1;
-                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-              };
-              if (display_width <= icon_width + cap_width + margin * 2) {
-                return;
-              }
-              const int x = display_width - icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              const int cap_height = icon_height / 2;
-              it.rectangle(x, y, icon_width, icon_height, id(black));
-              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
-              const int inner_width = icon_width - 4;
-              const int inner_height = icon_height - 4;
-              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
-              if (!id(battery_percent).has_state()) {
-                return;
-              }
-              const bool is_charging = id(usb_power_detect).state;
-              float percent = id(battery_percent).state;
-              if (percent < 0.0f) {
-                percent = 0.0f;
-              }
-              if (percent > 100.0f) {
-                percent = 100.0f;
-              }
-              auto level_color = id(lime);
-              if (percent < 20.0f) {
-                level_color = id(red);
-              } else if (percent < 50.0f) {
-                level_color = id(amber);
-              }
-              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
-              if (fill_width > inner_width) {
-                fill_width = inner_width;
-              } else if (fill_width < 0) {
-                fill_width = 0;
-              }
-              if (fill_width > 0) {
-                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
-              }
-              const int center_x = x + icon_width / 2;
-              const int center_y = y + icon_height / 2 + 1;           
-              if (is_charging) {
-                draw_charging_indicator(center_x, center_y);
-              } else {
-                it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
-              }
-            };
+  pages:
 
-            auto draw_wifi_icon = [&]() {
-              const int margin = 4;
-              const int battery_icon_width = 34;
-              const int cap_width = 4;
-              const int battery_icon_height = 14;
-              const int vertical_offset = 2;
-              const int display_width = it.get_width();
-              if (!id(wifi_signal_dbm).has_state()) {
-                return;
-              }
-              const int x = display_width - battery_icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              const int box_size = 22;
-              const int half_box = box_size / 2;
-              const int wifi_gap = 10;
-              const int center_x = x - wifi_gap - half_box;
-              float rssi = id(wifi_signal_dbm).state;
-              auto level_color = id(red);
-              int bars = 1;
-                if (rssi > -60.0f) {
-                  level_color = id(lime);
-                  bars = 3;
-                } else if (rssi > -75.0f) {
-                  level_color = id(amber);
-                  bars = 2;
-                }
-                const int dot_x = center_x;
-                const int dot_y = y + battery_icon_height - 1;
-                const float pi = 3.14159265f;
-                const float start_deg = 200.0f;
-                const float end_deg = 340.0f;
-                const float step_deg = 5.0f;
-              auto draw_arc = [&](int radius, int thickness) {
-                for (int t = 0; t < thickness; t++) {
-                  const int r = radius - t;
-                  bool has_prev = false;
-                  int prev_x = 0;
-                  int prev_y = 0;
-                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
-                    const float rad = deg * pi / 180.0f;
-                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
-                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
-                    if (has_prev) {
-                      it.line(prev_x, prev_y, px, py, level_color);
-                    }
-                    prev_x = px;
-                    prev_y = py;
-                    has_prev = true;
-                  }
-                }
-              };
+    - id: waitingBP
+      bg_color: 0x000000
+      widgets:
+        - obj:
+            id: idle_center_block_waitingBP
+            align: TOP_MID
+            width: 320
+            height: 110
+            y: 3
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: disp_micro_waitingBP
+                  align: TOP_LEFT
+                  text: "\U000F036c"
+                  text_color: 0xFFFF00
+                  text_font: font_mdi_tech
+                  x: 5
+                  y: 25
+                  width: 40
+                  long_mode: WRAP
+                  text_align: LEFT
 
-              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
-              if (bars >= 1) {
-                draw_arc(4, 2);
-              }
-              if (bars >= 2) {
-                draw_arc(7, 2);
-              }
-              if (bars >= 3) {
-                draw_arc(10, 2);
-              }
-            };
+              - label:
+                  id: lbl_battery_status
+                  align: TOP_RIGHT
+                  y: 25
+                  x: 5
+                  text_font: font_mdi_tech
+                  text: "\U000F0091" # start with mdi-battery-unknown
+                  text_color: 0xFFFF00
 
-            
-            auto draw_speaker_icon = [&]() {
-              const int margin = 4;
-              const int icon_width = 20;
-              const int icon_height = 20;
-              const int vertical_offset = 2;
-              const int horizontal_offset = 4;
-              int t = 1;
-              if (it.get_width() <= icon_width + margin * 2) {
-                return;
-              }
-              const int x = margin + horizontal_offset;
-              const int y = margin + vertical_offset;
-              const bool is_muted = id(mute) && !id(auto_mute_active);
-              auto symbol_color = is_muted ? id(red) : id(green);
+              - label:
+                  id: disp_powerplug_waitingBP
+                  align: TOP_RIGHT
+                  y: 25
+                  x: -12
+                  text_font: font_mdi_tech
+                  text: "\U000F1425" # start with outline
+                  text_color: 0xFFFF00
 
-              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
-              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));   
-              t = 2;      
-              it.rectangle(x-t, y+icon_height/4-t, icon_width, icon_height/2+t+t, id(black));
-              it.triangle(x, y+icon_height/2, x+icon_width+t, y-t, x+icon_width+t, y+icon_height+t,id(black));                     
-              it.filled_rectangle(x, y+icon_height/4, icon_width, icon_height/2, symbol_color);
-              it.filled_triangle(x, y+icon_height/2, x+icon_width, y, x+icon_width, y+icon_height,symbol_color); 
-              it.line(x+icon_width/2, y+icon_height/4, x+icon_width/2, y+icon_height*3/4, id(black));
-            };            
-            
-            draw_volume_bar();
-            draw_speaker_icon();
-            draw_battery_icon();
-            draw_wifi_icon();           
-        - id: listeningP
-          lambda: |-
-              it.image(0, 0, id(LIm));
-              auto draw_volume_bar = [&]() {
-                if (!id(volume_display_active)) {
-                  return;
-                }
-                float display_volume = id(Vol);
-                if (id(mute) || id(auto_mute_active)) {
-                  display_volume = 0.0f;
-                }
-                if (display_volume < 0.0f) {
-                  display_volume = 0.0f;
-                }
-                if (display_volume > 1.0f) {
-                  display_volume = 1.0f;
-                }
-                const int gauge_height = 18;
-                const int margin = 3;
-                const int display_width = it.get_width();
-                const int display_height = it.get_height();
-                if (display_width <= margin * 2 || display_height <= gauge_height) {
-                  return;
-                }
-                const int gauge_y = display_height - gauge_height;
-                const int inner_width = display_width - margin * 2;
-                const int inner_height = gauge_height - margin * 2;
-                int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-                if (filled_width > inner_width) {
-                  filled_width = inner_width;
-                } else if (filled_width < 0) {
-                  filled_width = 0;
-                }
-                it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-                if (inner_height > 0) {
-                  if (filled_width > 0) {
-                    auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                    it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                  }
-                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-                }
-              };
-              auto draw_battery_icon = [&]() {
-                const int margin = 4;
-                const int icon_width = 34;
-                const int icon_height = 14;
-                const int cap_width = 4;
-                const int vertical_offset = 2;
-                const int display_width = it.get_width();
-                auto draw_charging_indicator = [&](int center_x, int center_y) {
-                  const int x = display_width - icon_width - cap_width - margin;
-                  const int y = margin + vertical_offset;
-                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
-                  const int bolt_width = 24;
-                  const int bolt_height = 8;
-                  const int left = center_x - bolt_width / 2;
-                  const int top = center_y - bolt_height / 2 - 1;                
-                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                };
-                if (display_width <= icon_width + cap_width + margin * 2) {
-                  return;
-                }
-                const int x = display_width - icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                const int cap_height = icon_height / 2;
-                it.rectangle(x, y, icon_width, icon_height, id(black));
-                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
-                const int inner_width = icon_width - 4;
-                const int inner_height = icon_height - 4;
-                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
-                if (!id(battery_percent).has_state()) {
-                  return;
-                }
-                const bool is_charging = id(usb_power_detect).state;
-                float percent = id(battery_percent).state;
-                if (percent < 0.0f) {
-                  percent = 0.0f;
-                }
-                if (percent > 100.0f) {
-                  percent = 100.0f;
-                }
-                auto level_color = id(lime);
-                if (percent < 20.0f) {
-                  level_color = id(red);
-                } else if (percent < 50.0f) {
-                  level_color = id(amber);
-                }
-                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
-                if (fill_width > inner_width) {
-                  fill_width = inner_width;
-                } else if (fill_width < 0) {
-                  fill_width = 0;
-                }
-                if (fill_width > 0) {
-                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
-                }
-                const int center_x = x + icon_width / 2;
-                const int center_y = y + icon_height / 2 + 1;
-                if (is_charging) {
-                  draw_charging_indicator(center_x, center_y);
-                } else {
-                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
-                }
-              };
+              - label:
+                  id: disp_microplug_waitingBP
+                  align: TOP_LEFT
+                  y: 25
+                  x: 22
+                  text_font: font_mdi_tech
+                  text: "\U000F0370" # start with outline
+                  text_color: 0x202020
 
-              auto draw_wifi_icon = [&]() {
-                const int margin = 4;
-                const int battery_icon_width = 34;
-                const int cap_width = 4;
-                const int battery_icon_height = 14;
-                const int vertical_offset = 2;
-                const int display_width = it.get_width();
-                if (!id(wifi_signal_dbm).has_state()) {
-                  return;
-                }
-                const int x = display_width - battery_icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                const int box_size = 22;
-                const int half_box = box_size / 2;
-                const int wifi_gap = 10;
-                const int center_x = x - wifi_gap - half_box;
-                float rssi = id(wifi_signal_dbm).state;
-                auto level_color = id(red);
-                int bars = 1;
-                  if (rssi > -60.0f) {
-                    level_color = id(lime);
-                    bars = 3;
-                  } else if (rssi > -75.0f) {
-                    level_color = id(amber);
-                    bars = 2;
-                  }
-                  const int dot_x = center_x;
-                  const int dot_y = y + battery_icon_height - 1;
-                  const float pi = 3.14159265f;
-                  const float start_deg = 200.0f;
-                  const float end_deg = 340.0f;
-                  const float step_deg = 5.0f;
-                auto draw_arc = [&](int radius, int thickness) {
-                  for (int t = 0; t < thickness; t++) {
-                    const int r = radius - t;
-                    bool has_prev = false;
-                    int prev_x = 0;
-                    int prev_y = 0;
-                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
-                      const float rad = deg * pi / 180.0f;
-                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
-                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
-                      if (has_prev) {
-                        it.line(prev_x, prev_y, px, py, level_color);
-                      }
-                      prev_x = px;
-                      prev_y = py;
-                      has_prev = true;
-                    }
-                  }
-                };
+              - label:
+                  id: clock_label_waitingBP
+                  align: TOP_MID
+                  y: 6
+                  width: 320
+                  text: "--:--:--"
+                  text_color: 0xFFFF00
+                  text_font: font_7seg
+                  text_letter_space: 0
+                  text_align: CENTER
 
-                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
-                if (bars >= 1) {
-                  draw_arc(4, 2);
-                }
-                if (bars >= 2) {
-                  draw_arc(7, 2);
-                }
-                if (bars >= 3) {
-                  draw_arc(10, 2);
-                }
-              };
+        - obj:
+            id: idle_meteo_waitingBP
+            align: TOP_MID
+            x: 5
+            y: 60
+            width: 310
+            height: 70
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            #border_color: 0x00FF00
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: weather_icon_glow
+                  align: LEFT_MID
+                  x: 19
+                  y: 2
+                  text: "\U000F0590"
+                  text_color: 0x404040
+                  text_font: font_mdi_weather
 
-              draw_volume_bar();
-              draw_battery_icon();
-              draw_wifi_icon();
-        - id: answeringP
-          lambda: |-
-              it.image(0, 0, id(AIm));
-              it.rectangle(20 , 24 , 280 , 30 , Color::BLACK );
-              it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
-              it.rectangle(20 , 190 , 280 , 30 , Color::BLACK );
-              it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
-              auto draw_volume_bar = [&]() {
-                if (!id(volume_display_active)) {
-                  return;
-                }
-                float display_volume = id(Vol);
-                if (id(mute) || id(auto_mute_active)) {
-                  display_volume = 0.0f;
-                }
-                if (display_volume < 0.0f) {
-                  display_volume = 0.0f;
-                }
-                if (display_volume > 1.0f) {
-                  display_volume = 1.0f;
-                }
-                const int gauge_height = 18;
-                const int margin = 3;
-                const int display_width = it.get_width();
-                const int display_height = it.get_height();
-                if (display_width <= margin * 2 || display_height <= gauge_height) {
-                  return;
-                }
-                const int gauge_y = display_height - gauge_height;
-                const int inner_width = display_width - margin * 2;
-                const int inner_height = gauge_height - margin * 2;
-                int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-                if (filled_width > inner_width) {
-                  filled_width = inner_width;
-                } else if (filled_width < 0) {
-                  filled_width = 0;
-                }
-                it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-                if (inner_height > 0) {
-                  if (filled_width > 0) {
-                    auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                    it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                  }
-                  it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-                }
-              };
-              auto draw_battery_icon = [&]() {
-                const int margin = 4;
-                const int icon_width = 34;
-                const int icon_height = 14;
-                const int cap_width = 4;
-                const int vertical_offset = 2;
-                const int display_width = it.get_width();
-                auto draw_charging_indicator = [&](int center_x, int center_y) {
-                  const int x = display_width - icon_width - cap_width - margin;
-                  const int y = margin + vertical_offset;
-                  it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                  
-                  const int bolt_width = 24;
-                  const int bolt_height = 8;
-                  const int left = center_x - bolt_width / 2;
-                  const int top = center_y - bolt_height / 2 - 1;                  
-                  it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                  it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                };
-                if (display_width <= icon_width + cap_width + margin * 2) {
-                  return;
-                }
-                const int x = display_width - icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                const int cap_height = icon_height / 2;
-                it.rectangle(x, y, icon_width, icon_height, id(black));
-                it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
-                const int inner_width = icon_width - 4;
-                const int inner_height = icon_height - 4;
-                it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
-                if (!id(battery_percent).has_state()) {
-                  return;
-                }
-                const bool is_charging = id(usb_power_detect).state;
-                float percent = id(battery_percent).state;
-                if (percent < 0.0f) {
-                  percent = 0.0f;
-                }
-                if (percent > 100.0f) {
-                  percent = 100.0f;
-                }
-                auto level_color = id(lime);
-                if (percent < 20.0f) {
-                  level_color = id(red);
-                } else if (percent < 50.0f) {
-                  level_color = id(amber);
-                }
-                int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
-                if (fill_width > inner_width) {
-                  fill_width = inner_width;
-                } else if (fill_width < 0) {
-                  fill_width = 0;
-                } 
-                if (fill_width > 0) {
-                  it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
-                }
-                const int center_x = x + icon_width / 2;
-                const int center_y = y + icon_height / 2 + 1;
-                if (is_charging) {
-                  draw_charging_indicator(center_x, center_y);
-                } else {
-                  it.printf(center_x, center_y, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
-                }
-              };            
-              auto draw_wifi_icon = [&]() {
-                const int margin = 4;
-                const int battery_icon_width = 34;
-                const int cap_width = 4;
-                const int battery_icon_height = 14;
-                const int vertical_offset = 2;
-                const int display_width = it.get_width();
-                if (!id(wifi_signal_dbm).has_state()) {
-                  return;
-                }
-                const int x = display_width - battery_icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                const int box_size = 22;
-                const int half_box = box_size / 2;
-                const int wifi_gap = 10;
-                const int center_x = x - wifi_gap - half_box;
-                float rssi = id(wifi_signal_dbm).state;
-                auto level_color = id(red);
-                int bars = 1;
-                  if (rssi > -60.0f) {
-                    level_color = id(lime);
-                    bars = 3;
-                  } else if (rssi > -75.0f) {
-                    level_color = id(amber);
-                    bars = 2;
-                  }
-                  const int dot_x = center_x;
-                  const int dot_y = y + battery_icon_height - 1;
-                  const float pi = 3.14159265f;
-                  const float start_deg = 200.0f;
-                  const float end_deg = 340.0f;
-                  const float step_deg = 5.0f;
-                auto draw_arc = [&](int radius, int thickness) {
-                  for (int t = 0; t < thickness; t++) {
-                    const int r = radius - t;
-                    bool has_prev = false;
-                    int prev_x = 0;
-                    int prev_y = 0;
-                    for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
-                      const float rad = deg * pi / 180.0f;
-                      const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
-                      const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
-                      if (has_prev) {
-                        it.line(prev_x, prev_y, px, py, level_color);
-                      }
-                      prev_x = px;
-                      prev_y = py;
-                      has_prev = true;
-                    }
-                  }
-                };
+              - label:
+                  id: weather_icon
+                  align: LEFT_MID
+                  x: 18
+                  y: 1
+                  text: "\U000F0590"
+                  text_color: 0xFFFFFF
+                  text_font: font_mdi_weather
 
-                it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
-                if (bars >= 1) {
-                  draw_arc(4, 2);
-                }
-                if (bars >= 2) {
-                  draw_arc(7, 2);
-                }
-                if (bars >= 3) {
-                  draw_arc(10, 2);
-                }
-              };            
-              draw_volume_bar();
-              draw_battery_icon();
-              draw_wifi_icon();
-        - id: muteMicP
-          lambda: |-
-            it.image(0, 0, id(muteMicIm));
-            auto draw_volume_bar = [&]() {
-              if (!id(volume_display_active)) {
-                return;
-              }
-              float display_volume = id(Vol);
-              if (id(mute) || id(auto_mute_active)) {
-                display_volume = 0.0f;
-              }
-              if (display_volume < 0.0f) {
-                display_volume = 0.0f;
-              }
-              if (display_volume > 1.0f) {
-                display_volume = 1.0f;
-              }
-              const int gauge_height = 18;
-              const int margin = 3;
-              const int display_width = it.get_width();
-              const int display_height = it.get_height();
-              if (display_width <= margin * 2 || display_height <= gauge_height) {
-                return;
-              }
-              const int gauge_y = display_height - gauge_height;
-              const int inner_width = display_width - margin * 2;
-              const int inner_height = gauge_height - margin * 2;
-              int filled_width = static_cast<int>(inner_width * display_volume + 0.5f);
-              if (filled_width > inner_width) {
-                filled_width = inner_width;
-              } else if (filled_width < 0) {
-                filled_width = 0;
-              }
-              it.filled_rectangle(0, gauge_y, display_width, gauge_height, id(bg_charcoal));
-              if (inner_height > 0) {
-                if (filled_width > 0) {
-                  auto bar_color = id(volume_display_active) ? id(lime) : id(light_blue);
-                  it.filled_rectangle(margin, gauge_y + margin, filled_width, inner_height, bar_color);
-                }
-                it.rectangle(margin, gauge_y + margin, inner_width, inner_height, id(black));
-              }
-            };
-            auto draw_battery_icon = [&]() {
-              const int margin = 2;
-              const int icon_width = 30;
-              const int icon_height = 10;
-              const int cap_width = 4;
-              const int vertical_offset = 2;
-              const int display_width = it.get_width();
-              auto draw_charging_indicator = [&](int center_x, int center_y) {
-                const int x = display_width - icon_width - cap_width - margin;
-                const int y = margin + vertical_offset;
-                it.filled_rectangle(x+1, y+1, icon_width-2, icon_height-2, id(light_green));                
-                const int bolt_width = 24;
-                const int bolt_height = 8;
-                const int left = center_x - bolt_width / 2;
-                const int top = center_y - bolt_height / 2 - 1;
-                it.filled_triangle(left + bolt_width / 2, top, left + bolt_width, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-                it.filled_triangle(left + bolt_width / 2, top + bolt_height, left, top + bolt_height / 2, left + bolt_width / 2, top + bolt_height / 2, id(black));
-              };
-              if (display_width <= icon_width + cap_width + margin * 2) {
-                return;
-              }
-              const int x = display_width - icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              const int cap_height = icon_height / 2;
-              it.rectangle(x, y, icon_width, icon_height, id(black));
-              it.filled_rectangle(x + icon_width, y + (icon_height - cap_height) / 2, cap_width, cap_height, id(black));
-              const int inner_width = icon_width - 4;
-              const int inner_height = icon_height - 4;
-              it.filled_rectangle(x + 2, y + 2, inner_width, inner_height, id(bg_charcoal));
-              if (!id(battery_percent).has_state()) {
-                return;
-              }
-              const bool is_charging = id(usb_power_detect).state;
-              float percent = id(battery_percent).state;
-              if (percent < 0.0f) {
-                percent = 0.0f;
-              }
-              if (percent > 100.0f) {
-                percent = 100.0f;
-              }
-              auto level_color = id(lime);
-              if (percent < 20.0f) {
-                level_color = id(red);
-              } else if (percent < 50.0f) {
-                level_color = id(amber);
-              }
-              int fill_width = static_cast<int>(inner_width * (percent / 100.0f) + 0.5f);
-              if (fill_width > inner_width) {
-                fill_width = inner_width;
-              } else if (fill_width < 0) {
-                fill_width = 0;
-              }
-              if (fill_width > 0) {
-                it.filled_rectangle(x + 2, y + 2, fill_width, inner_height, level_color);
-              }
-              const int center_x = x + icon_width / 2;
-              const int center_y = y + icon_height / 2;
-              if (is_charging) {
-                draw_charging_indicator(center_x, center_y);
-              } else {
-                it.printf(center_x, center_y + 1, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", percent);
-              }
-            };
+              - label:
+                  id: weather_big_temp
+                  align: CENTER
+                  x: 0
+                  y: 1
+                  text: "--"
+                  text_color: 0xFFFF00
+                  text_font: font_temp_big
 
-            draw_volume_bar();
-            draw_battery_icon();
-            auto draw_wifi_icon = [&]() {
-              const int margin = 2;
-              const int battery_icon_width = 30;
-              const int cap_width = 4;
-              const int battery_icon_height = 10;
-              const int vertical_offset = 2;
-              const int display_width = it.get_width();
-              if (!id(wifi_signal_dbm).has_state()) {
-                return;
-              }
-              const int x = display_width - battery_icon_width - cap_width - margin;
-              const int y = margin + vertical_offset;
-              const int box_size = 22;
-              const int half_box = box_size / 2;
-              const int wifi_gap = 10;
-              const int center_x = x - wifi_gap - half_box;
-              float rssi = id(wifi_signal_dbm).state;
-              auto level_color = id(red);
-              int bars = 1;
-              if (rssi > -60.0f) {
-                level_color = id(lime);
-                bars = 3;
-                } else if (rssi > -75.0f) {
-                  level_color = id(amber);
-                  bars = 2;
-                }
-                const int dot_x = center_x;
-                const int dot_y = y + battery_icon_height - 1;
-                const float pi = 3.14159265f;
-                const float start_deg = 200.0f;
-                const float end_deg = 340.0f;
-                const float step_deg = 5.0f;
-              auto draw_arc = [&](int radius, int thickness) {
-                for (int t = 0; t < thickness; t++) {
-                  const int r = radius - t;
-                  bool has_prev = false;
-                  int prev_x = 0;
-                  int prev_y = 0;
-                  for (float deg = start_deg; deg <= end_deg; deg += step_deg) {
-                    const float rad = deg * pi / 180.0f;
-                    const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
-                    const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
-                    if (has_prev) {
-                      it.line(prev_x, prev_y, px, py, level_color);
-                    }
-                    prev_x = px;
-                    prev_y = py;
-                    has_prev = true;
-                  }
-                }
-              };
+              - label:
+                  id: weather_big_temp_unit
+                  align: CENTER
+                  x: 45
+                  y: 0
+                  text: "°C"
+                  text_color: 0xFFFF00
+                  text_font: font_temp_unit
 
-              it.filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, level_color);
-              if (bars >= 1) {
-                draw_arc(4, 2);
-              }
-              if (bars >= 2) {
-                draw_arc(7, 2);
-              }
-              if (bars >= 3) {
-                draw_arc(10, 2);
-              }
-            };
-            draw_wifi_icon();
+        - obj:
+            id: idle_center_center_block_waitingBP
+            align: TOP_MID
+            y: 120
+            width: 320
+            height: 75
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: disp_status_waitingBP
+                  align: TOP_MID
+                  text: "waitingBP"
+                  text_color: 0xFFFFFF
+                  text_font: font_status
+                  y: 0
+                  width: 320
+                  long_mode: WRAP
+                  text_align: CENTER
+              - label:
+                  id: chanel_waitingBP
+                  align: BOTTOM_MID
+                  text: "waitingBP"
+                  text_color: 0xFFFFFF
+                  text_font: font_status
+                  y: 0
+                  width: 320
+                  long_mode: WRAP
+                  text_align: CENTER
+        - obj:
+            id: idle_bottom_center_block_waitingBP
+            align: BOTTOM_MID
+            y: 0
+            width: 320
+            height: 50
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: menu_waitingBP
+                  align: TOP_MID
+                  text: "waitingBP"
+                  text_color: 0xFFFFFF
+                  text_font: font_response
+                  x: 5
+                  y: 5
+                  width: 320
+                  long_mode: SCROLL_CIRCULAR
+                  text_align: CENTER
+              - bar:
+                  align: BOTTOM_MID
+                  width: 300
+                  x: 5
+                  y: -5
+                  id: bar_vol_id
+                  transform_height: 3
+                  value: 75
+                  min_value: 1
+                  max_value: 100
+
+    - id: answeringP
+      bg_color: 0x000000
+      widgets:
+        - obj:
+            id: idle_center_block_answeringP
+            align: CENTER
+            width: 240
+            height: 230
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: clock_label_answeringP
+                  align: TOP_MID
+                  y: 6
+                  width: 320
+                  text: "--:--:--"
+                  text_color: 0xFFFF00
+                  text_font: font_7seg
+                  text_letter_space: 0
+                  text_align: CENTER
+        - label:
+            align: CENTER
+            text: "answeringP"
+            text_color: 0xFFFFFF
+            text_font: font_boot
+            y: 100
+            width: 230
+            long_mode: WRAP
+            text_align: CENTER
+
+
