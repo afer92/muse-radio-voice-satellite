@@ -44,6 +44,86 @@ font:
     id: font_wifi_label
     size: 9
 
+
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_display
+    size: 18
+    glyphsets:
+      - GF_Latin_Core
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 600
+    id: font_boot
+    size: 34
+    glyphsets:
+      - GF_Latin_Core
+
+  - file: "/config/esphome/fonts/DSEG7ClassicMini-Bold.ttf"
+    id: font_7seg
+    size: 42
+    glyphs: "0123456789:- "
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_temp_big
+    size: 58
+    glyphs: "0123456789-"
+
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_temp_unit
+    size: 22
+
+  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
+    id: font_mdi_tech
+    size: 24
+    bpp: 4
+    glyphs:
+      - "\U000F036c" # Micro on
+      - "\U000F036d" # Micro off
+      - "\U000F007A" # mdi-battery-10
+      - "\U000F007B" # mdi-battery-20
+      - "\U000F007C" # mdi-battery-30
+      - "\U000F007D" # mdi-battery-40
+      - "\U000F007E" # mdi-battery-50
+      - "\U000F007F" # mdi-battery-60
+      - "\U000F0080" # mdi-battery-70
+      - "\U000F0081" # mdi-battery-80
+      - "\U000F0082" # mdi-battery-90
+      - "\U000F0079" # mdi-battery (full)
+      - "\U000F008E" # mdi-battery-outline
+      - "\U000F0091" # mdi-battery-unknown
+      - "\U000F06a5" # Power plug on
+      - "\U000F06a6" # Powwer plug off
+      - "\U000F1425" # Powwer plug outline
+      - "\U000F0370" # Micro plug in
+      - "\U000F0371" # Micro plug out
+      - "\U000F05A9" # Wifi
+
+  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
+    id: font_mdi_weather
+    size: 48
+    bpp: 4
+    glyphs:
+      - "\U000F0590"
+      - "\U000F0592"
+      - "\U000F0593"
+      - "\U000F0595"
+      - "\U000F0596"
+      - "\U000F0597"
+      - "\U000F0598"
+      - "\U000F0599"
+
 color:
   - id: green
     hex: '75D15F'
