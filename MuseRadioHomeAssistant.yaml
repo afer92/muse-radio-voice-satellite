@@ -1,8 +1,14 @@
 substitutions:
-  name: raspiaudio-radio
-  friendly_name: Raspiaudio Radio
+  startup_sound_file: https://github.com/RealDeco/xiaozhi-esphome/raw/main/sounds/Home_Connected.flac
+  ha_weather_entity: weather.forecast_maison
+  
   #image_path: "https://github.com/RASPIAUDIO/muse-radio-voice-satellite/raw/main/images/"
-  image_path: "http://xx.xx.xx.xx/RASPIAUDIO/muse-radio-voice-satellite/main/images/"
+  image_path: "http://xxx.xxx.xxx.xxx/RASPIAUDIO/muse-radio-voice-satellite/main/images/"
+  
+  low_mac: xxxxxx
+  suffix: xxxxxx
+  name: raspiaudio-radio-xxxxxx
+  friendly_name: Raspiaudio Radio xxxxxx
 
 packages:   # as a list
   - !include raspiaudio/radios.yaml
@@ -35,8 +41,12 @@ esphome:
             condition:
               lambda: return id(myDisplay).is_ready();
             then:
+              - lvgl.page.show: waitingBP
+              - text.set: 
+                  id: txt_status
+                  value: "Init..."
               - lambda: |-
-                    id(myDisplay).show_page(logoP);
+                    //id(myDisplay).show_page(logoP);
                     id(myDisplay).update();
               - light.turn_on: screen_backlight
             else:
@@ -413,6 +423,12 @@ globals:
     type: int
     initial_value: '0'
 
+text:
+  - platform: template
+    id: txt_status
+    optimistic: true
+    initial_value: "Init"
+    mode: TEXT
 
 interval:
   - interval: 1sec
@@ -615,6 +631,7 @@ sensor:
                - 3.50 -> 1.7
                - 3.00 -> 0.0
       - lambda: return clamp(x, 0.0f, 100.0f);   
+
   - platform: wifi_signal
     name: WiFi Signal
     id: wifi_signal_dbm
@@ -930,20 +947,25 @@ script:
   - id: schedule_volume_update
 #    mode: restart
     then:
-#      - delay: 400ms
-      - lambda: |-
-          if (id(volume_display_active) && id(myDisplay).is_ready()) {
-            id(myDisplay).update();
-          }
+      - delay: 400ms
+      #- lambda: |-
+      #    if (id(volume_display_active) && id(myDisplay).is_ready()) {
+      #      id(myDisplay).update();
+      #    }
 
   - id: reset_display
 #    mode: restart
     then: 
-       - logger.log: "===> reset_display" 
+       - logger.log: "===> reset_display"
+       - if:
+            condition:
+              lambda: 'return id(mic_muted);'
+            then:
+              - lvgl.page.show: waitingBP 
        - lambda: |-
             id(lightTO) = 0;
             if (id(mic_muted)) {
-              id(myDisplay).show_page(muteMicP);
+              //id(myDisplay).show_page(muteMicP);
               id(myDisplay).update();
               return;
             }
@@ -966,8 +988,13 @@ script:
        - media_player.speaker.play_on_device_media_file:
            media_file: little_sound
            announcement: false
+       #- lvgl.page.show: logoP
+       - lvgl.page.show: waitingBP
+       - text.set: 
+           id: txt_status
+           value: "Init..."
        - lambda: |-
-           id(myDisplay).show_page(logoP);
+           //id(myDisplay).show_page(logoP);
            id(myDisplay).update();
            id(lightTO) = 0;
        - light.turn_on: screen_backlight
@@ -983,8 +1010,12 @@ script:
              not:
                wifi.connected:
            then:
+             - lvgl.page.show: waitingBP
+             - text.set: 
+                 id: txt_status
+                 value: "Wifi waiting..."
              - lambda: |-
-                 id(myDisplay).show_page(wifiWaitingP);
+                 //id(myDisplay).show_page(wifiWaitingP);
                  id(myDisplay).update();
                  id(lightTO) = 0;
              - light.turn_on: screen_backlight
@@ -1006,8 +1037,12 @@ script:
                - script.execute: mute_on
                - micro_wake_word.start:
                - logger.log: "===> wakeword"
+               - lvgl.page.show: waitingBP
+               - text.set: 
+                   id: txt_status
+                   value: "Waiting wake word..."
                - lambda: |-
-                   id(myDisplay).show_page(waitingP);
+                   //id(myDisplay).show_page(waitingP);
                    id(myDisplay).update();
                    id(lightTO) = 0;
                - light.turn_on: screen_backlight
@@ -1018,8 +1053,12 @@ script:
     then:
        - logger.log: "===> listening"
        - script.execute: mute_on
+       - lvgl.page.show: waitingBP
+       - text.set: 
+           id: txt_status
+           value: "Listening..."
        - lambda: |-
-            id(myDisplay).show_page(listeningP);
+            //id(myDisplay).show_page(listeningP);
             id(myDisplay).update();
             id(lightTO) = 0;
 
@@ -1031,8 +1070,9 @@ script:
     then:
        - logger.log: "===> answering"
        - script.execute: mute_off
+       - lvgl.page.show: answeringP
        - lambda: |-
-            id(myDisplay).show_page(answeringP);
+            //id(myDisplay).show_page(answeringP);
             id(myDisplay).update();
             id(lightTO) = 0;
        - light.turn_on: screen_backlight
@@ -1046,8 +1086,13 @@ script:
     then:
        - logger.log: "===> front end player"
 #       - script.execute: mute_off
+       - lvgl.page.show: waitingBP
+       - text.set: 
+           id: txt_status
+           value: "Playing"
+
        - lambda: |-
-            id(myDisplay).show_page(waitingBP);
+            //id(myDisplay).show_page(waitingBP);
             id(myDisplay).update();
             id(lightTO) = 0;
        - light.turn_on: screen_backlight
