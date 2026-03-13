@@ -12,6 +12,8 @@ binary_sensor:
       - delayed_off: 100ms
     on_click:
       - logger.log: "IR OK received"
+      - light.toggle: screen_backlight
+
   - platform: remote_receiver
     name: "IR UP"
     id: ir_up
@@ -25,6 +27,7 @@ binary_sensor:
       - number.decrement:
           id: num_shift
           cycle: true
+
   - platform: remote_receiver
     name: "IR DOWN"
     id: ir_down
@@ -38,6 +41,7 @@ binary_sensor:
       - number.increment:
           id: num_shift
           cycle: true
+
   - platform: remote_receiver
     name: "IR RIGHT"
     id: ir_right
@@ -51,6 +55,7 @@ binary_sensor:
       - number.increment:
           id: num_btn
           cycle: true
+
   - platform: remote_receiver
     name: "IR LEFT"
     id: ir_left
@@ -64,6 +69,7 @@ binary_sensor:
       - number.decrement:
           id: num_btn
           cycle: true
+
   - platform: remote_receiver
     name: "IR LIKE"
     id: ir_like
@@ -80,6 +86,7 @@ binary_sensor:
       - number.set:
           id: num_btn
           value: 1
+
   - platform: remote_receiver
     name: "IR HOME"
     id: ir_home
@@ -96,6 +103,7 @@ binary_sensor:
       - number.set:
           id: num_btn
           value: 2
+
   - platform: remote_receiver
     name: "IR BIN"
     id: ir_bin
@@ -105,4 +113,18 @@ binary_sensor:
     filters:
       - delayed_off: 100ms
     on_press:
-      - logger.log: "IR BIN received" 
+      - logger.log: "IR BIN received"
+      #- media_player.play_media: "https://media.radiofrance-podcast.net/podcast09/10212-03.03.2026-ITEMA_24427540-2026F10732S0062-NET_MFI_A75F9593-92E1-4ADE-A4F6-D7CA7EE9F40B-27-b20c9b99e8bcaffc6324880756c7a94b.m4a"
+
+  - platform: remote_receiver
+    name: "IR RED"
+    id: ir_red
+    nec:
+      address: 0xFE01
+      command: 0xFF00
+    filters:
+      - delayed_off: 100ms
+    on_press:
+      - logger.log: "IR RED received" 
+      - button.press: bt_restart
+
