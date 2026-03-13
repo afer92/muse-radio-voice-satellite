@@ -1,11 +1,11 @@
 # radios.yaml
 
 substitutions:
-  # 0 5
+  # 0
   franceinfo: 'http://direct.franceinfo.fr/live/franceinfo-midfi.mp3'
   franceinter: 'http://direct.franceinter.fr/live/franceinter-midfi.mp3'
   franceculture: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
-  # 1# 6
+  # 1
   francemusique: 'http://direct.franceculture.fr/live/franceculture-midfi.mp3'
   fip: 'http://direct.fipradio.fr/live/fip-midfi.mp3'
   mouv: 'http://icecast.radiofrance.fr/mouv-midfi.mp3'
@@ -29,4 +29,5 @@ substitutions:
   rfm: "http://rfm.lmn.fm/rfm.mp3"
   europe1: "http://europe1.lmn.fm/europe1.mp3"
   europe2: "http://europe2.lmn.fm/europe2.mp3"
+  
   
