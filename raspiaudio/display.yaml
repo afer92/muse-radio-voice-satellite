@@ -4,85 +4,6 @@ substitutions:
   startup_sound_file: "/config/esphome/media/Home_Connected.flac"
   ha_weather_entity: weather.forecast_maison
 
-font:
-
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 300
-    id: font_display
-    size: 18
-    glyphsets:
-      - GF_Latin_Core
-
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 600
-    id: font_boot
-    size: 34
-    glyphsets:
-      - GF_Latin_Core
-
-  - file: "/config/esphome/fonts/DSEG7ClassicMini-Bold.ttf"
-    id: font_7seg
-    size: 42
-    glyphs: "0123456789:- "
-
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 700
-    id: font_temp_big
-    size: 58
-    glyphs: "0123456789-"
-
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 700
-    id: font_temp_unit
-    size: 22
-
-  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
-    id: font_mdi_tech
-    size: 24
-    bpp: 4
-    glyphs:
-      - "\U000F036c" # Micro on
-      - "\U000F036d" # Micro off
-      - "\U000F007A" # mdi-battery-10
-      - "\U000F007B" # mdi-battery-20
-      - "\U000F007C" # mdi-battery-30
-      - "\U000F007D" # mdi-battery-40
-      - "\U000F007E" # mdi-battery-50
-      - "\U000F007F" # mdi-battery-60
-      - "\U000F0080" # mdi-battery-70
-      - "\U000F0081" # mdi-battery-80
-      - "\U000F0082" # mdi-battery-90
-      - "\U000F0079" # mdi-battery (full)
-      - "\U000F008E" # mdi-battery-outline
-      - "\U000F0091" # mdi-battery-unknown
-      - "\U000F06a5" # Power plug on
-      - "\U000F06a6" # Powwer plug off
-      - "\U000F1425" # Powwer plug outline
-      - "\U000F0370" # Micro plug in
-      - "\U000F0371" # Micro plug out
-      - "\U000F05A9" # Wifi
-
-  - file: "/config/esphome/fonts/materialdesignicons-webfont.ttf"
-    id: font_mdi_weather
-    size: 48
-    bpp: 4
-    glyphs:
-      - "\U000F0590"
-      - "\U000F0592"
-      - "\U000F0593"
-      - "\U000F0595"
-      - "\U000F0596"
-      - "\U000F0597"
-      - "\U000F0598"
-      - "\U000F0599"
 
 api:
   on_client_connected:
@@ -117,7 +38,7 @@ text_sensor:
             lvgl.page.is_showing: waitingBP
           then:
             - lvgl.label.update:
-                id: clock_label_waitingBP
+                id: lbl_clock_label
                 text: !lambda return x;
       - if:
           condition:
@@ -138,7 +59,7 @@ text_sensor:
             lvgl.page.is_showing: waitingBP
           then:
             - lvgl.label.update:
-                id: chanel_waitingBP
+                id: lbl_chanel
                 text: !lambda return x;
 
   - platform: template
@@ -152,7 +73,7 @@ text_sensor:
             lvgl.page.is_showing: waitingBP
           then:
             - lvgl.label.update:
-                id: menu_waitingBP
+                id: lbl_menu
                 text: !lambda return x;
 
   - platform: template
@@ -166,7 +87,7 @@ text_sensor:
             lvgl.page.is_showing: waitingBP
           then:
             - lvgl.label.update:
-                id: disp_status_waitingBP
+                id: lbl_status
                 text: !lambda return x;
 
   - platform: template
@@ -176,7 +97,6 @@ text_sensor:
       int display_volume = (int) (id(Vol) * 100.0f);
       char buffer[10]; 
       sprintf(buffer, "%d", display_volume);
-      //auto n = parse_number<int>(buffer);
       return std::string(buffer);
     on_value:
       #- logger.log:
@@ -227,17 +147,17 @@ text_sensor:
             lambda: return (stoi(x) == 1);
           then:
             - lvgl.label.update:
-                id: disp_micro_waitingBP
+                id: lbl_micro
                 text: "\U000F036d"
                 text_color: 0x00FF00
           else:
             - lvgl.label.update:
-                id: disp_micro_waitingBP
+                id: lbl_micro
                 text: "\U000F036c"
                 text_color: 0xFF0000
 
   - platform: template
-    id: disp_microplug
+    id: txt_microplug
     update_interval: 1s
     lambda: |-
       char buffer[10]; 
@@ -249,12 +169,12 @@ text_sensor:
             lambda: return (stoi(x) == 1);
           then:
             - lvgl.label.update:
-                id: disp_microplug_waitingBP
+                id: lbl_microplug
                 text: "\U000F0370"
                 text_color: 0x00FF00
           else:
             - lvgl.label.update:
-                id: disp_microplug_waitingBP
+                id: lbl_microplug
                 text: "\U000F0371"
                 text_color: 0xFF0000
 
@@ -271,12 +191,12 @@ text_sensor:
             lambda: return (stoi(x) == 1);
           then:
             - lvgl.label.update:
-                id: disp_powerplug_waitingBP
+                id: lbl_powerplug
                 text: "\U000F06a5"
                 text_color: 0x00FF00
           else:
             - lvgl.label.update:
-                id: disp_powerplug_waitingBP
+                id: lbl_powerplug
                 text: "\U000F06a6"
                 text_color: 0xFF0000
 
@@ -306,8 +226,8 @@ text_sensor:
             icon = "\U000F0592";
           }
 
-          lv_label_set_text(id(weather_icon_glow), icon);
-          lv_label_set_text(id(weather_icon), icon);
+          lv_label_set_text(id(lbl_weather_icon_glow), icon);
+          lv_label_set_text(id(lbl_weather_icon), icon);
 
   - platform: template
     id: weather_temp_big
@@ -324,7 +244,7 @@ text_sensor:
             lvgl.page.is_showing: waitingBP
           then:
             - lvgl.label.update:
-                id: weather_big_temp
+                id: lbl_weather_big_temp
                 text: !lambda return x;
 
 sensor:
@@ -425,7 +345,7 @@ lvgl:
       bg_color: 0x000000
       widgets:
         - obj:
-            id: idle_center_block_waitingBP
+            id: top_area
             align: TOP_MID
             width: 320
             height: 110
@@ -436,7 +356,7 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  id: disp_micro_waitingBP
+                  id: lbl_micro
                   align: TOP_LEFT
                   text: "\U000F036c"
                   text_color: 0xFFFF00
@@ -457,7 +377,7 @@ lvgl:
                   text_color: 0xFFFF00
 
               - label:
-                  id: disp_powerplug_waitingBP
+                  id: lbl_powerplug
                   align: TOP_RIGHT
                   y: 25
                   x: -12
@@ -466,7 +386,7 @@ lvgl:
                   text_color: 0xFFFF00
 
               - label:
-                  id: disp_microplug_waitingBP
+                  id: lbl_microplug
                   align: TOP_LEFT
                   y: 25
                   x: 22
@@ -475,7 +395,7 @@ lvgl:
                   text_color: 0x202020
 
               - label:
-                  id: clock_label_waitingBP
+                  id: lbl_clock_label
                   align: TOP_MID
                   y: 6
                   width: 320
@@ -486,7 +406,7 @@ lvgl:
                   text_align: CENTER
 
         - obj:
-            id: idle_meteo_waitingBP
+            id: meteo_area
             align: TOP_MID
             x: 5
             y: 60
@@ -499,7 +419,7 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  id: weather_icon_glow
+                  id: lbl_weather_icon_glow
                   align: LEFT_MID
                   x: 19
                   y: 2
@@ -508,7 +428,7 @@ lvgl:
                   text_font: font_mdi_weather
 
               - label:
-                  id: weather_icon
+                  id: lbl_weather_icon
                   align: LEFT_MID
                   x: 18
                   y: 1
@@ -517,7 +437,7 @@ lvgl:
                   text_font: font_mdi_weather
 
               - label:
-                  id: weather_big_temp
+                  id: lbl_weather_big_temp
                   align: CENTER
                   x: 0
                   y: 1
@@ -526,7 +446,7 @@ lvgl:
                   text_font: font_temp_big
 
               - label:
-                  id: weather_big_temp_unit
+                  id: lbl_weather_big_temp_unit
                   align: CENTER
                   x: 45
                   y: 0
@@ -535,7 +455,7 @@ lvgl:
                   text_font: font_temp_unit
 
         - obj:
-            id: idle_center_center_block_waitingBP
+            id: playing_area
             align: TOP_MID
             y: 120
             width: 320
@@ -546,9 +466,9 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  id: disp_status_waitingBP
+                  id: lbl_status
                   align: TOP_MID
-                  text: "waitingBP"
+                  text: "waiting"
                   text_color: 0xFFFFFF
                   text_font: font_status
                   y: 0
@@ -556,9 +476,9 @@ lvgl:
                   long_mode: WRAP
                   text_align: CENTER
               - label:
-                  id: chanel_waitingBP
+                  id: lbl_chanel
                   align: BOTTOM_MID
-                  text: "waitingBP"
+                  text: "waiting pgm"
                   text_color: 0xFFFFFF
                   text_font: font_status
                   y: 0
@@ -566,7 +486,7 @@ lvgl:
                   long_mode: WRAP
                   text_align: CENTER
         - obj:
-            id: idle_bottom_center_block_waitingBP
+            id: bottom_area
             align: BOTTOM_MID
             y: 0
             width: 320
@@ -577,9 +497,9 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  id: menu_waitingBP
+                  id: lbl_menu
                   align: TOP_MID
-                  text: "waitingBP"
+                  text: "waiting menu"
                   text_color: 0xFFFFFF
                   text_font: font_response
                   x: 5
@@ -594,7 +514,7 @@ lvgl:
                   y: -5
                   id: bar_vol_id
                   transform_height: 3
-                  value: 75
+                  value: 5
                   min_value: 1
                   max_value: 100
 
