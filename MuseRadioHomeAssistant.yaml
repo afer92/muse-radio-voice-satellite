@@ -14,7 +14,7 @@ packages:   # as a list
   - !include raspiaudio/radios.yaml
   - !include raspiaudio/extra1.yaml
   - !include raspiaudio/font.yaml
-  - !include raspiaudio/display1.yaml
+  - !include raspiaudio/display.yaml
   - !include raspiaudio/button.yaml
   - !include raspiaudio/ir.yaml
   - !include raspiaudio/sendspin.yaml
