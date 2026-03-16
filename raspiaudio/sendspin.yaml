@@ -1,0 +1,167 @@
+# sendspin.yaml
+
+
+# Sendspin related components are pinned to specific commits for reproducible builds
+external_components:
+  - source:
+      type: git
+      url: https://github.com/esphome/home-assistant-voice-pe
+      ref: dev
+    components:
+      - voice_kit
+    refresh: 0s
+  - source: github://pr#12256
+    components: [ audio ]
+  - source: github://pr#12258
+    components: [ media_player ]
+  - source: github://pr#12284
+    components: [ mdns, sendspin ]
+  - source: github://pr#12429
+    components: [color_noise, file, http_request, media_source, speaker_source]
+
+globals:
+  - id: sendspin_album_art_valid
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: boot_sound_played
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: boot_announce_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  - id: weather_available
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+
+text_sensor:
+
+  - platform: sendspin
+    id: sendspin_title
+    type: title
+    on_value:
+      - lambda: |-
+          id(sendspin_album_art_valid) = false;
+      #- script.execute: album_art_timeout_fallback
+      - component.update: now_playing_text
+
+  - platform: sendspin
+    id: sendspin_artist
+    type: artist
+    on_value:
+      - lambda: |-
+          id(sendspin_album_art_valid) = false;
+      #- script.execute: album_art_timeout_fallback
+      - component.update: now_playing_text
+
+  - platform: template
+    id: now_playing_text
+    update_interval: never
+    lambda: |-
+      std::string s = id(sendspin_title).get_state();
+      auto a = id(sendspin_artist).get_state();
+      if (!a.empty()) {
+        if (!s.empty()) s += " - ";
+        s += a;
+      }
+      return s;
+    on_value:
+      #- lvgl.label.update: { id: now_playing_o_nw, text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_n,  text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_ne, text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_w,  text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_e,  text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_sw, text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_s,  text: !lambda return x; }
+      #- lvgl.label.update: { id: now_playing_o_se, text: !lambda return x; }
+      - lvgl.label.update:
+          id: lbl_chanel
+          text: !lambda return x;
+
+media_source:
+  - platform: sendspin
+    id: sendspin_source
+  - platform: color_noise
+    id: noise_source
+#  - platform: http_request
+#    id: http_source
+#    buffer_size: 131072
+#  - platform: file
+#    id: file_so#urce
+#    files:
+#      - id: local_file
+#        file: ${franceinfo}
+
+sendspin:
+  id: sendspin_hub
+  task_stack_in_psram: true
+  kalman_process_error: 0.01
+
+media_player:
+
+  - platform: sendspin
+    id: sendspin_group_media_player
+
+  - platform: speaker_source
+    id: external_media_player
+    name: sendspin Media Player
+    #announcement_speaker: announcement_resampling_input
+    #media_speaker: media_resampling_input
+    media_speaker: sendspin_mixer_input
+    #media_speaker: box_speaker
+    # Preferred formats only apply to http_request components
+    announcement_pipeline:
+      format: FLAC
+      num_channels: 1
+      sample_rate: 48000
+    media_pipeline:
+    #  format: FLAC 
+      num_channels: 2
+      sample_rate: 48000
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 0.85
+    sources:
+      - sendspin_source
+#      - file_source
+#      - http_source
+#      - noise_source
+
+    on_play:
+      - media_player.stop:
+          id: radio_media_player
+      - lambda: |-
+                 id(phase) = 2;
+      - script.execute: sendspin_player
+    
+
+#########
+# Scripts
+
+script:
+  - id: sendspin_player
+    mode: restart
+    then:
+       - logger.log: "===> sendspin player"
+       - script.execute: mute_off
+       - lvgl.page.show: waitingBP
+       - text.set: 
+           id: txt_status
+           value: "Playing"
+
+       - lambda: |-
+            //id(myDisplay).show_page(waitingBP);
+            id(myDisplay).update();
+            id(lightTO) = 0;
+       - light.turn_on: screen_backlight
+       - lvgl.label.update:
+           id: lbl_chanel
+           text: "Sendspin"
+       - delay: 2s
+       - lvgl.label.update:
+           id: lbl_chanel
+           text: !lambda return id(now_playing_text).state;
