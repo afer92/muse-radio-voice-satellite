@@ -14,10 +14,10 @@ packages:   # as a list
   - !include raspiaudio/radios.yaml
   - !include raspiaudio/extra1.yaml
   - !include raspiaudio/font.yaml
-  - !include raspiaudio/display.yaml
+  - !include raspiaudio/display1.yaml
   - !include raspiaudio/button.yaml
   - !include raspiaudio/ir.yaml
-  #- !include raspiaudio/sendspin.yaml
+  - !include raspiaudio/sendspin.yaml
   - !include common/base_sensor.yaml
   - !include common/base_text_sensor.yaml
 
@@ -62,7 +62,7 @@ esphome:
                 id(lightTO) = 0;
                 id(phase) = 0;
         - media_player.volume_set:
-                id: speaker_media_player
+                id: radio_media_player
                 volume: !lambda return id(Vol);
         - script.execute: reset_display
 #      - lambda: id(my_es8388).set_volume(0.0);
@@ -204,7 +204,7 @@ microphone:
 
 speaker:
   - platform: i2s_audio
-    id: radio_speaker
+    id: box_speaker
     i2s_dout_pin: GPIO17
     dac_type: external
     sample_rate: 48000
@@ -212,21 +212,50 @@ speaker:
     channel: stereo
     buffer_duration: 100ms
 
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: box_speaker
+    num_channels: 2
+    source_speakers:
+      - id: announcement_mixer_input
+      - id: media_mixer_input
+      - id: sendspin_mixer_input
+
+  - platform: resampler
+    id: media_resampling_input
+    output_speaker: media_mixer_input
+    sample_rate: 48000
+
+  - platform: resampler
+    id: announcement_resampling_input
+    output_speaker: announcement_mixer_input
+    sample_rate: 48000
+
+  #- platform: resampler
+  #  id: radio_resampling_input
+  #  output_speaker: radio_mixer_input
+  #  sample_rate: 48000
 
 
 media_player:
   - platform: speaker
     name: None
-    id: speaker_media_player
+    id: radio_media_player
 #    volume_min: 0.5
 #    volume_max: 0.8
 #   internal: false
 #   task_stack_in_psram: true
     announcement_pipeline:
-      speaker: radio_speaker
+      speaker: announcement_resampling_input
+      #speaker: box_speaker
       format: WAV
       sample_rate: 48000
       num_channels: 1
+    #media_pipeline:
+    #  speaker: media_resampling_input
+    #  format: FLAC 
+    #  num_channels: 2
+    #  sample_rate: 48000
     files:
       - id: little_sound
         file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac
@@ -234,7 +263,7 @@ media_player:
     on_play:
       then:
         - lambda: |-
-            const optional<std::string> & url = id(speaker_media_player).make_call().get_media_url();
+            const optional<std::string> & url = id(radio_media_player).make_call().get_media_url();
             if (url.has_value()) {
               ESP_LOGD("main", "  Media URL: %s", url.value().c_str());
             }else{
@@ -264,6 +293,7 @@ media_player:
          and:
           - not:
               media_player.is_announcing:
+                id: radio_media_player
           - not:
               voice_assistant.is_running:
       - if:
@@ -275,7 +305,11 @@ media_player:
             - script.execute: reset_display
       - if:
           condition:
-               lambda: 'return(id(phase) == 2);'
+            and:
+              - lambda: 'return(id(phase) == 2);'
+              - not:
+                  media_player.is_playing:
+                    id: sendspin_group_media_player
           then:
             - lambda: |-
                   id(phase) = 1;
@@ -306,7 +340,7 @@ micro_wake_word:
 voice_assistant:
   id: va
   microphone: radio_mic
-  media_player: speaker_media_player
+  media_player: radio_media_player
   micro_wake_word: mww
   use_wake_word: false
   noise_suppression_level: 2
@@ -348,6 +382,7 @@ voice_assistant:
         and:
           - not:
               media_player.is_announcing:
+                id: radio_media_player
           - not:
               voice_assistant.is_running:
     - if:
@@ -498,6 +533,7 @@ sensor:
         - script.execute:
             id: adjust_volume
             delta: 0.05
+
   - platform: rotary_encoder
     name: "Dummy"
     id: function_encoder
@@ -514,12 +550,18 @@ sensor:
     on_anticlockwise:
       then:
         - light.turn_on: screen_backlight
+        - number.decrement:
+            id: num_shift
+            cycle: true
         - lambda: |-
                 id(lightTO) = 0;
 
     on_clockwise:
       then:
         - light.turn_on: screen_backlight
+        - number.increment:
+            id: num_shift
+            cycle: true
         - lambda: |-
                 id(lightTO) = 0;
   - platform: adc
@@ -812,16 +854,18 @@ script:
               - if:
                   condition:
                     media_player.is_announcing:
+                      id: radio_media_player
                   then:
                     - media_player.stop:
-                        id: speaker_media_player
+                        id: radio_media_player
                         announcement: true
               - if:
                   condition:
                     media_player.is_playing:
+                      id: radio_media_player
                   then:
                     - media_player.stop:
-                        id: speaker_media_player
+                        id: radio_media_player
               - micro_wake_word.start:
               - lambda: |-
                   id(mute) = false;
@@ -832,16 +876,18 @@ script:
               - if:
                   condition:
                     media_player.is_announcing:
+                      id: radio_media_player
                   then:
                     - media_player.stop:
-                        id: speaker_media_player
+                        id: radio_media_player
                         announcement: true
               - if:
                   condition:
                     media_player.is_playing:
+                      id: radio_media_player
                   then:
                     - media_player.stop:
-                        id: speaker_media_player
+                        id: radio_media_player
               - if:
                   condition:
                     voice_assistant.is_running:
@@ -867,12 +913,14 @@ script:
             then:
               - logger.log: "unmute!"
               - media_player.volume_set:
+                  id: radio_media_player
                   volume: !lambda 'return id(Vol);'
               - lambda: id(mute) = false;
               - lambda: id(auto_mute_active) = false;
             else:
               - logger.log: "mute!"
               - media_player.volume_set:
+                  id: radio_media_player
                   volume: '0'
               - lambda: id(mute) = true;
               - lambda: id(auto_mute_active) = false;
@@ -938,8 +986,11 @@ script:
            }               
           
       - media_player.volume_set:
-          id: speaker_media_player
+          id: radio_media_player
           volume: !lambda return id(Vol);
+      #- media_player.volume_set:
+      #    id: sendspin_group_media_player
+      #    volume: !lambda return id(Vol);
       - delay: 200ms
       - script.execute: schedule_volume_update
       - script.execute: reset_display
@@ -986,6 +1037,7 @@ script:
     then:
        - logger.log: "===> logo"
        - media_player.speaker.play_on_device_media_file:
+           id: radio_media_player
            media_file: little_sound
            announcement: false
        #- lvgl.page.show: logoP
@@ -1104,6 +1156,7 @@ script:
             lambda: 'return !id(auto_mute_active);'
           then:
             - media_player.volume_set:
+                id: radio_media_player
                 volume: '0'
       - lambda: |-
           id(mute) = true;
@@ -1119,6 +1172,7 @@ script:
             lambda: 'return id(auto_mute_active);'
           then:
             - media_player.volume_set:
+                id: radio_media_player
                 volume: !lambda return(id(Vol));
       - lambda: |-
           id(mute) = false;
