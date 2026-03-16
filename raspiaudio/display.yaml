@@ -56,7 +56,11 @@ text_sensor:
     on_value:
       - if:
           condition:
-            lvgl.page.is_showing: waitingBP
+            and:
+              - lvgl.page.is_showing: waitingBP
+              - not:
+                  media_player.is_playing:
+                    id: sendspin_group_media_player
           then:
             - lvgl.label.update:
                 id: lbl_chanel
@@ -70,7 +74,11 @@ text_sensor:
     on_value:
       - if:
           condition:
-            lvgl.page.is_showing: waitingBP
+            and:
+              - lvgl.page.is_showing: waitingBP
+              - not:
+                  media_player.is_playing:
+                    id: sendspin_group_media_player
           then:
             - lvgl.label.update:
                 id: lbl_menu
@@ -483,7 +491,7 @@ lvgl:
                   text_font: font_status
                   y: 0
                   width: 320
-                  long_mode: WRAP
+                  long_mode: SCROLL_CIRCULAR
                   text_align: CENTER
         - obj:
             id: bottom_area
