@@ -140,7 +140,10 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 0;'
            then:
-             - media_player.play_media: '${franceinfo}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${franceinfo}'
+             #- media_player.play_media: '${franceinfo}'
              - text.set:
                  id: homeassistant_chanel
                  value: "France Info"
@@ -148,7 +151,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 1;'
            then:
-             - media_player.play_media: '${francemusique}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${francemusique}'
              - text.set:
                  id: homeassistant_chanel
                  value: "France Musique"
@@ -156,7 +161,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 2;'
            then:
-             - media_player.play_media: '${iciidf}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${iciidf}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Ici IdF"
@@ -164,7 +171,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 3;'
            then:
-             - media_player.play_media: '${rmc}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${rmc}'
              - text.set:
                  id: homeassistant_chanel
                  value: "RMC"
@@ -172,7 +181,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 4;'
            then:
-             - media_player.play_media: '${nrj}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${nrj}'
              - text.set:
                  id: homeassistant_chanel
                  value: "NRJ"
@@ -180,7 +191,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 5;'
            then:
-             - media_player.play_media: '${nostalgie_paris}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${nostalgie_paris}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Nostalgie Paris"
@@ -188,7 +201,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 6;'
            then:
-             - media_player.play_media: '${rfm}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${rfm}'
              - text.set:
                  id: homeassistant_chanel
                  value: "RFM"
@@ -201,7 +216,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 0;'
            then:
-             - media_player.play_media: '${franceinter}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${franceinter}'
              - text.set:
                  id: homeassistant_chanel
                  value: "France Inter"
@@ -209,7 +226,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 1;'
            then:
-             - media_player.play_media: '${fip}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${fip}'
              - text.set:
                  id: homeassistant_chanel
                  value: "FIP"
@@ -217,7 +236,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 2;'
            then:
-             - media_player.play_media: '${radioclassique}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${radioclassique}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Radio Classique"
@@ -225,7 +246,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 3;'
            then:
-             - media_player.play_media: '${ouifm}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${ouifm}'
              - text.set:
                  id: homeassistant_chanel
                  value: "3: Oui FM"
@@ -233,7 +256,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 4;'
            then:
-             - media_player.play_media: '${nrj_paris}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${nrj_paris}'
              - text.set:
                  id: homeassistant_chanel
                  value: "NRJ Paris"
@@ -241,7 +266,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 5;'
            then:
-             - media_player.play_media: '${funradio}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${funradio}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Fun Radio"
@@ -249,7 +276,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 6;'
            then:
-             - media_player.play_media: '${europe1}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${europe1}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Europe 1"
@@ -261,7 +290,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 0;'
            then:
-             - media_player.play_media: '${franceculture}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${franceculture}'
              - text.set:
                  id: homeassistant_chanel
                  value: "France Culture"
@@ -269,7 +300,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 1;'
            then:
-             - media_player.play_media: '${mouv}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${mouv}'
              - text.set:
                  id: homeassistant_chanel
                  value: "MOUV"
@@ -277,7 +310,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 2;'
            then:
-             - media_player.play_media: '${radionova}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${radionova}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Radio Nova"
@@ -285,7 +320,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 3;'
            then:
-             - media_player.play_media: '${latina}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${latina}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Latina"
@@ -293,7 +330,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 4;'
            then:
-             - media_player.play_media: '${nostalgie}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${nostalgie}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Nostalgie"
@@ -301,7 +340,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 5;'
            then:
-             - media_player.play_media: '${cherifm}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${cherifm}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Cherie FM"
@@ -309,7 +350,9 @@ script:
            condition:
              lambda: 'return id(num_shift).state == 6;'
            then:
-             - media_player.play_media: '${europe2}'
+             - media_player.play_media:
+                 id: radio_media_player
+                 media_url: '${europe2}'
              - text.set:
                  id: homeassistant_chanel
                  value: "Europe 2"
