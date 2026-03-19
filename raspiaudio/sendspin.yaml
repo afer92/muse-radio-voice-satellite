@@ -17,7 +17,8 @@ external_components:
   - source: github://pr#12284
     components: [ mdns, sendspin ]
   - source: github://pr#12429
-    components: [color_noise, file, http_request, media_source, speaker_source]
+    #components: [color_noise, file, http_request, media_source, speaker_source]
+    components: [color_noise, media_source, speaker_source]
 
 globals:
   - id: sendspin_album_art_valid
