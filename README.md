@@ -1,7 +1,7 @@
 # Raspiaudio Muse Radio Voice Satellite
 
    [![YouTube Video](https://img.youtube.com/vi/s2iglcJn5CA/0.jpg)](https://youtu.be/s2iglcJn5CA)
-   [![App Platorm](https://github.com/afer92/muse-radio-voice-satellite/blob/sendspin/images/20260321_095832.jpg)]
+   [![Muse Radion Sendspin](https://github.com/afer92/muse-radio-voice-satellite/blob/sendspin/images/20260321_095832.jpg)]
 
    
 # New   
