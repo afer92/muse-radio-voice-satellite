@@ -1,7 +1,7 @@
 # Raspiaudio Muse Radio Voice Satellite
 
    [![YouTube Video](https://img.youtube.com/vi/s2iglcJn5CA/0.jpg)](https://youtu.be/s2iglcJn5CA)
-   [![Muse Radion Sendspin](https://github.com/afer92/muse-radio-voice-satellite/blob/sendspin/images/20260321_095832.jpg)]
+   <img src="https://github.com/afer92/muse-radio-voice-satellite/blob/sendspin/images/20260321_095832.jpg" width=50% height=50%>
 
    
 # New   
